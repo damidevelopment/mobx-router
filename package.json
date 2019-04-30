@@ -28,11 +28,13 @@
   },
   "dependencies": {
     "director": "^1.2.8",
-    "mobx": "^5.9.4",
-    "mobx-react": "^5.4.3",
     "path-to-regexp": "^3.0.0",
-    "query-string": "^6.5.0",
-    "react": "^16.8.6"
+    "query-string": "^6.5.0"
+  },
+  "peerDependencies": {
+    "mobx": "^5.x",
+    "mobx-react": "^5.x",
+    "react": "^16.x"
   },
   "devDependencies": {
     "@babel/cli": "^7.4.4",
