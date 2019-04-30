@@ -1,0 +1,46 @@
+{
+  "name": "damidev-mobx-router",
+  "description": "MobX powered router for React apps",
+  "version": "0.1.0",
+  "author": "Jakub Hrášek <hrasek@damidev.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/damidevelopment/mobx-router/issues"
+  },
+  "homepage": "https://github.com/damidevelopment/mobx-router",
+  "keywords": [
+    "mobx",
+    "react",
+    "router"
+  ],
+  "main": "lib/index.js",
+  "files": [
+    "src/",
+    "lib/"
+  ],
+  "scripts": {
+    "build": "babel src --out-dir lib",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/damidevelopment/mobx-router.git"
+  },
+  "dependencies": {
+    "director": "^1.2.8",
+    "mobx": "^5.9.4",
+    "mobx-react": "^5.4.3",
+    "path-to-regexp": "^3.0.0",
+    "query-string": "^6.5.0",
+    "react": "^16.8.6"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.4.4",
+    "@babel/core": "^7.4.4",
+    "@babel/plugin-proposal-class-properties": "^7.4.4",
+    "@babel/plugin-proposal-decorators": "^7.4.4",
+    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "@babel/preset-env": "^7.4.4",
+    "@babel/preset-react": "^7.0.0"
+  }
+}
