@@ -34,6 +34,7 @@
   "peerDependencies": {
     "mobx": "^5.x",
     "mobx-react": "^5.x",
+    "mobx-utils": "^5.x",
     "react": "^16.x",
     "react-dom": "^16.x"
   },
