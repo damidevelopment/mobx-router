@@ -1,21 +1,34 @@
 import { Router } from 'director/build/director';
-import { viewsForDirector, noopAsync, getObjectKeys, buildFnsArray, dummyFn } from './utils';
+import { viewsForDirector, noopAsync, compileAsyncAction, compileSyncAction, getObjectKeys, buildFnsArray, dummyFn } from './utils';
 import { RouterStore } from './router-store';
 
-const routeBeforeExit = (routerStore, director) =>
+const routeBeforeExit = (rootStore, director) =>
     (...args) => {
+        const routerStore = rootStore.routerStore;
         const view = routerStore.currentRoute;
 
         if (view.beforeExit == null) {// @intentionaly ==
             noopAsync.apply(undefined, args);
         } else {
             let next = args.pop();
-            director.invoke(buildFnsArray(view.beforeExit), director, next);
+            let fns = buildFnsArray(view.beforeExit).map((fn) => compileAsyncAction(rootStore, fn));
+            director.invoke(fns, director, next);
         }
     };
 
-const createDirectorRouter = (views, routerStore, config) => {
-    const director = new Router({ ...viewsForDirector(views, routerStore) });
+/**
+ * Initialize and cofigure director router
+ *
+ * @param  {object}               views             List of routes and subroutes
+ * @param  {object|RootStore}     rootStore         App rootStore object
+ * @param  {function|function[]}  options.onEnter   Action or list of Actions
+ * @param  {function|function[]}  options.onExit    Action or list of Actions
+ * @param  {function}             options.notFound  Not found Action
+ * @return {void}
+ */
+const createDirectorRouter = (views, rootStore, { onEnter, onExit, notFound } = {}) => {
+    const director = new Router({ ...viewsForDirector(views, rootStore) });
+    const routerStore = rootStore.routerStore;
 
     // handler for changing routes
     routerStore.handler = (route) => director.setRoute(route);
@@ -24,9 +37,10 @@ const createDirectorRouter = (views, routerStore, config) => {
         recurse: 'forward',
         async: true,
         html5history: true,
-        before:   [/*dummyFn('Director.beforeRoute')*/],
-        after:    [routeBeforeExit(routerStore, director), dummyFn('Director.afterRoute')],
-        notfound: dummyFn('Director.notFoundRoute')// must be function only
+        before:   buildFnsArray(onEnter).map((fn) => compileSyncAction(rootStore, fn)),
+        after:    buildFnsArray(routeBeforeExit(rootStore, director))
+                    .concat(buildFnsArray(onExit).map((fn) => compileSyncAction(rootStore, fn))),
+        notfound: compileSyncAction(rootStore, notFound)
     });
     director.init();
 };
@@ -51,11 +65,9 @@ const buildRoutes = (views, { parentKey, parent } = {}) =>
         }, obj);
     }, {});
 
-export const startRouter = (views, config) => {
-    const router = new RouterStore({ routes: buildRoutes(views) });
+export const startRouter = (views, rootStore, config) => {
+    rootStore.routerStore = new RouterStore({ routes: buildRoutes(views) });
 
     //create director configuration
-    createDirectorRouter(views, router, config);
-
-    return router;
+    createDirectorRouter(views, rootStore, config);
 };
