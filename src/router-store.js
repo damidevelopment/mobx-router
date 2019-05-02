@@ -28,10 +28,10 @@ export class RouterStore
     }
 
     @action.bound
-    onMatch(args, rootStore) {
+    onMatch(params, rootStore) {
         let route = this.currentRoute;
         this.currentView[route.slot] = () =>
-            typeof route.component === 'function' ? route.component(args, rootStore) : route.component;
+            typeof route.component === 'function' ? route.component(params, rootStore) : route.component;
     }
 }
 
@@ -60,6 +60,20 @@ export class Route
     slot = 'default';
 
     /**
+     * Component can be React.Component or function that returns renderable object.
+     *
+     * For a function we have always 2 arguments:
+     * - params    - route url params and queryParams
+     * - rootStore - rootStore object
+     *
+     * ```
+     *  function (params, rootStore) {
+     *      const promise = fetch('/post/' + params.id);
+     *      return (<Post postId={params.id} data={promise} />);
+     *  }
+     * ```
+     *
+     * @see [[RouterStore.onMatch]]
      * @var {React.Component|function}
      */
     component;
