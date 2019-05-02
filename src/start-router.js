@@ -26,7 +26,7 @@ const routeBeforeExit = (rootStore, director) =>
  * @param  {function}             options.notFound  Not found Action
  * @return {void}
  */
-const createDirectorRouter = (views, rootStore, { onEnter, onExit, notFound } = {}) => {
+const createDirectorRouter = (views, rootStore, { onEnter, onExit, notFound, resource } = {}) => {
     const director = new Router({ ...viewsForDirector(views, rootStore) });
     const routerStore = rootStore.routerStore;
 
@@ -40,7 +40,12 @@ const createDirectorRouter = (views, rootStore, { onEnter, onExit, notFound } = 
         before:   buildFnsArray(onEnter).map((fn) => compileSyncAction(rootStore, fn)),
         after:    buildFnsArray(routeBeforeExit(rootStore, director))
                     .concat(buildFnsArray(onExit).map((fn) => compileSyncAction(rootStore, fn))),
-        notfound: compileSyncAction(rootStore, notFound)
+        notfound: compileSyncAction(rootStore, notFound),
+        resource: getObjectKeys(resource).reduce((obj, name) => {
+            let fn  = resource[name];
+            obj[name] = compileAsyncAction(rootStore, fn);
+            return obj;
+        }, {})
     });
     director.init();
 };

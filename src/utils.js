@@ -12,18 +12,27 @@ export const noopAsync = (...args) => {
 
 export const buildFnsArray = (...args) => {
     const arr = [];
-    return arr.concat.apply(arr, args).filter(fn => typeof fn === 'function');
+    return arr.concat.apply(arr, args).filter(fn => typeof fn === 'function' || typeof fn === 'string');
 }
 
-export const compileSyncAction = (rootStore, callback) =>
-    (...args) => {
+export const compileSyncAction = (rootStore, callback) => {
+    if (typeof callback === 'string') {
+        return callback;
+    }
+
+    return (...args) => {
         const next = args.pop();
         callback(args, rootStore);
         next();
     }
+}
 
-export const compileAsyncAction = (rootStore, callback) =>
-    (...args) => {
+export const compileAsyncAction = (rootStore, callback) => {
+    if (typeof callback === 'string') {
+        return callback;
+    }
+
+    return (...args) => {
         const next = args.pop();
         const result = callback(args, rootStore);
 
@@ -44,7 +53,8 @@ export const compileAsyncAction = (rootStore, callback) =>
         else {
             next();
         }
-    };
+    }
+};
 
 const setCurrentRoute = (routerStore, view) =>
     (...args) => {
