@@ -80,7 +80,7 @@ export const viewsForDirector = (views, rootStore) =>
             ...viewsForDirector(view.subroutes, rootStore),
             on: buildFnsArray(view.beforeEnter)
                 .map((fn) => compileAsyncAction(rootStore, fn))
-                .concat(setCurrentRoute(routerStore, view), routerStore.onMatch)
+                .concat(setCurrentRoute(routerStore, view), compileSyncAction(rootStore, routerStore.onMatch))
         };
 
         return obj;
