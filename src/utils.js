@@ -48,14 +48,14 @@ export const compileAsyncAction = (rootStore, callback) => {
         if (isPromiseBasedObservable(result)) {
             result.case(
                 () => {},
-                (err) => next(err),
+                (err) => next(false),
                 () => next()
             );
         }
         else if (isPromise(result)) {
             result.then(
                 () => next(),
-                (err) => next(err)
+                (err) => next(false)
             );
         }
         else {
