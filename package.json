@@ -27,7 +27,7 @@
     "url": "https://github.com/damidevelopment/mobx-router.git"
   },
   "dependencies": {
-    "director": "^1.2.8",
+    "damidev-director": "^1.2.9",
     "path-to-regexp": "^3.0.0",
     "query-string": "^6.5.0"
   },
