@@ -28,11 +28,10 @@ export class RouterStore
     }
 
     @action.bound
-    onMatch(...args) {
-        const next = args.pop();
+    onMatch(args, rootStore) {
         let route = this.currentRoute;
-        this.currentView[route.slot] = route.component;
-        next();
+        this.currentView[route.slot] = () =>
+            typeof route.component === 'function' ? route.component(args, rootStore) : route.component;
     }
 }
 
