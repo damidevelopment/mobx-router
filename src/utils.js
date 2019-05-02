@@ -16,6 +16,10 @@ export const buildFnsArray = (...args) => {
 }
 
 export const compileSyncAction = (rootStore, callback) => {
+    if (!callback) {
+        return noopAsync;
+    }
+
     if (typeof callback === 'string') {
         return callback;
     }
@@ -28,6 +32,10 @@ export const compileSyncAction = (rootStore, callback) => {
 }
 
 export const compileAsyncAction = (rootStore, callback) => {
+    if (!callback) {
+        return noopAsync;
+    }
+
     if (typeof callback === 'string') {
         return callback;
     }
