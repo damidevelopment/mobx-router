@@ -26,6 +26,11 @@ const getGenerator = (pattern) => {
  *     => '/departments/electronics'
  */
 export const generateUrl = (pattern = '/', params = {}, queryParams = {}) => {
+    // remove special chars, from patterns like '/$'
+    pattern = pattern.replace(/|\$/, '');
+    // replace repeating slashes
+    pattern = pattern.replace(/\/\/+/, '/');
+
     // inject params
     const generator = getGenerator(pattern);
     let url = generator(params);
