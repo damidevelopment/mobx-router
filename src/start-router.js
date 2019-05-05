@@ -92,7 +92,7 @@ const buildRoutes = (views, { parentKey, parent } = {}) =>
         ]
             .filter(Boolean)
             .join('')
-            .replace(/\/\/+/g, '/');
+            .replace(/(\/\/+|\/\?)/g, '/');
 
         obj[key] = {
             view,
