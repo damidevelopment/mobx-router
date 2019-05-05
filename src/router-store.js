@@ -1,10 +1,10 @@
-import { observable, action } from 'mobx';
+import { observable, action, toJS } from 'mobx';
 import { routerStateToUrl } from './generate-url';
 
 export class RouterStore
 {
-    params = {};
-    queryParams = {};
+    @observable params = {};
+    @observable queryParams = {};
 
     @observable currentView = {
         default: null,
@@ -30,8 +30,8 @@ export class RouterStore
         if (typeof routerState === 'string') {
             routerState = new RouterState({
                 routeName: routerState,
-                params,
-                queryParams
+                params: toJS(params),
+                queryParams: toJS(queryParams)
             });
         }
         this.handler(routerStateToUrl(this, routerState));
@@ -51,7 +51,7 @@ export class RouterStore
     }
 
     getRouteParams() {
-        return { ...this.params, ...this.queryParams };
+        return { ...toJS(this.params), ...toJS(this.queryParams) };
     }
 }
 

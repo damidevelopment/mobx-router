@@ -10,6 +10,7 @@ import {
     getQuery
 } from './utils';
 import { RouterStore } from './router-store';
+import { action } from 'mobx';
 
 const routeBeforeExit = (rootStore, director) =>
     (...args) => {
@@ -29,7 +30,7 @@ const routeBeforeExit = (rootStore, director) =>
     };
 
 const setCurrentRoute = (routerStore) =>
-    (...args) => {
+    action((...args) => {
         const next = args.pop();
 
         for (const name in routerStore.routes) {
@@ -44,7 +45,7 @@ const setCurrentRoute = (routerStore) =>
             }
         }
         next();
-    };
+    });
 
 /**
  * Initialize and cofigure director router
