@@ -43,10 +43,15 @@ export class RouterStore
 
     @action
     onMatch(rootStore, view) {
+        // change currentView only when slot exists and component is not empty
         if (this.currentView.hasOwnProperty(view.slot) && view.component != null) {// @intentionaly !=
             this.currentView[view.slot] = () =>
-                typeof view.component === 'function' ? view.component(this.params, rootStore) : view.component;
+                typeof view.component === 'function' ? view.component(this.getRouteParams(), rootStore) : view.component;
         }
+    }
+
+    getRouteParams() {
+        return { ...this.params, ...this.queryParams };
     }
 }
 

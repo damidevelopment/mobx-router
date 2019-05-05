@@ -28,7 +28,8 @@ export const compileSyncAction = (rootStore, callback) => {
 
     return (...args) => {
         const next = args.pop();
-        callback(args, rootStore);
+        const routerStore = rootStore.routerStore;
+        callback(routerStore.getRouteParams(), rootStore);
         next();
     }
 }
@@ -44,7 +45,8 @@ export const compileAsyncAction = (rootStore, callback) => {
 
     return (...args) => {
         const next = args.pop();
-        const result = callback(args, rootStore);
+        const routerStore = rootStore.routerStore;
+        const result = callback(routerStore.getRouteParams(), rootStore);
 
         // @see mobx-utils fromPromise
         if (isPromiseBasedObservable(result)) {

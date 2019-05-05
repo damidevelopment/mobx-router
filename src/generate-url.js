@@ -44,18 +44,29 @@ export const generateUrl = (pattern = '/', params = {}, queryParams = {}) => {
 };
 
 /**
- * Converts the supplied routerState to a URL
+ * Converts the supplied state to a URL
  * @param {RouterStore} routerStore
- * @param {RouterState} routerState
+ * @param {RouterState} toState
  * @returns {string}
  */
-export const routerStateToUrl = (routerStore, routerState) => {
-    const { routeName, params, queryParams } = routerState;
-    const route = routerStore.getRoute(routeName);
+export const routerStateToUrl = (routerStore, toState) => {
+    const route = routerStore.getRoute(toState.routeName);
 
     if (!route) {
-        return '#(no route found for ' + routeName + ')';
+        return '#(no route found for ' + toState.routeName + ')';
     }
 
-    return generateUrl(route.pattern, { ...routerStore.params, ...params }, { ...routerStore.queryParams, ...queryParams });
+    const params = {
+        ...routerStore.params,
+        ...toState.params,
+        ...route.defaultParams,
+    };
+
+    // TODO not every time, we want persist queryParams from previous call
+    const queryParams = {
+        ...routerStore.queryParams,
+        ...toState.queryParams
+    };
+
+    return generateUrl(route.pattern, params, queryParams);
 };
