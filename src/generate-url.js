@@ -2,12 +2,12 @@
  * Credits to https://github.com/nareshbhatia/mobx-state-router
  */
 
-import { compile, PathFunction } from 'path-to-regexp';
+import { compile } from 'path-to-regexp';
 import { stringify } from 'query-string';
 
 const generatorCache = {};
 
-const getGenerator = (pattern) => {
+export const getGenerator = (pattern) => {
     const generator = generatorCache[pattern];
     if (generator) {
         return generator;
@@ -52,5 +52,10 @@ export const generateUrl = (pattern = '/', params = {}, queryParams = {}) => {
 export const routerStateToUrl = (routerStore, routerState) => {
     const { routeName, params, queryParams } = routerState;
     const route = routerStore.getRoute(routeName);
-    return generateUrl(route.path, params, queryParams);
+
+    if (!route) {
+        return '#(no route found for ' + routeName + ')';
+    }
+
+    return generateUrl(route.pattern, { ...routerStore.params, ...params }, { ...routerStore.queryParams, ...queryParams });
 };

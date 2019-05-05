@@ -1,9 +1,21 @@
 import { Router } from 'director/build/director';
-import { viewsForDirector, noopAsync, compileAsyncAction, compileSyncAction, getObjectKeys, buildFnsArray, dummyFn } from './utils';
+import {
+    viewsForDirector,
+    noopAsync,
+    compileAsyncAction,
+    compileSyncAction,
+    getObjectKeys,
+    buildFnsArray,
+    buildParamsObject,
+    getQuery
+} from './utils';
 import { RouterStore } from './router-store';
 
 const routeBeforeExit = (rootStore, director) =>
     (...args) => {
+        noopAsync.apply(undefined, args);
+        return;
+
         const routerStore = rootStore.routerStore;
         const view = routerStore.currentRoute;
 
@@ -14,6 +26,24 @@ const routeBeforeExit = (rootStore, director) =>
             let fns = buildFnsArray(view.beforeExit).map((fn) => compileAsyncAction(rootStore, fn));
             director.invoke(fns, director, next);
         }
+    };
+
+const setCurrentRoute = (routerStore) =>
+    (...args) => {
+        const next = args.pop();
+
+        for (const name in routerStore.routes) {
+            let route = routerStore.routes[name];
+            const params = buildParamsObject(route.pattern, route.defaultParams);
+
+            if (params) {
+                routerStore.params = params;
+                routerStore.queryParams = getQuery();
+                routerStore.currentRoute = route;
+                break;
+            }
+        }
+        next();
     };
 
 /**
@@ -31,15 +61,16 @@ const createDirectorRouter = (views, rootStore, { onEnter, onExit, notFound, res
     const routerStore = rootStore.routerStore;
 
     // handler for changing routes
-    routerStore.handler = (route) => director.setRoute(route);
+    routerStore.handler = director.setRoute.bind(director);
 
     director.configure({
         recurse: 'forward',
         async: true,
         html5history: true,
-        before:   buildFnsArray(onEnter).map((fn) => compileSyncAction(rootStore, fn)),
-        after:    buildFnsArray(routeBeforeExit(rootStore, director))
-                    .concat(buildFnsArray(onExit).map((fn) => compileSyncAction(rootStore, fn))),
+        before: [setCurrentRoute(routerStore)].concat(
+            buildFnsArray(onEnter).map((fn) => compileSyncAction(rootStore, fn))
+        ),
+        after: buildFnsArray(onExit).map((fn) => compileSyncAction(rootStore, fn)),
         notfound: compileSyncAction(rootStore, notFound),
         resource: getObjectKeys(resource).reduce((obj, name) => {
             let fn  = resource[name];
@@ -53,14 +84,19 @@ const createDirectorRouter = (views, rootStore, { onEnter, onExit, notFound, res
 const buildRoutes = (views, { parentKey, parent } = {}) =>
     getObjectKeys(views).reduce((obj, viewKey) => {
         const view = views[viewKey];
-        const key = [parentKey, viewKey].filter(foo => !!foo).join('.');
+        const key = [parentKey, viewKey].filter(Boolean).join('.');
+
+        let pattern = [
+            parent ? parent.pattern : null,
+            view.pattern
+        ]
+            .filter(Boolean)
+            .join('')
+            .replace(/\/\/+/g, '/');
 
         obj[key] = {
-            slot: view.slot,
-            path: [
-                parent ? parent.path : null,
-                view.path
-            ].filter(foo => !!foo).join('')
+            view,
+            pattern
         };
 
         const subroutes = buildRoutes(view.subroutes, { parentKey: viewKey, parent: view });
@@ -70,8 +106,9 @@ const buildRoutes = (views, { parentKey, parent } = {}) =>
         }, obj);
     }, {});
 
-export const startRouter = (views, rootStore, config) => {
-    rootStore.routerStore = new RouterStore({ routes: buildRoutes(views) });
+export const startRouter = (views, rootStore, { currentView, ...config }) => {
+    const routes = buildRoutes(views);
+    rootStore.routerStore = new RouterStore({ routes, currentView });
 
     //create director configuration
     createDirectorRouter(views, rootStore, config);

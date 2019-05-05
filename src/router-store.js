@@ -1,8 +1,11 @@
-import { observable, computed, action, toJS, runInAction } from 'mobx';
+import { observable, action } from 'mobx';
 import { routerStateToUrl } from './generate-url';
 
 export class RouterStore
 {
+    params = {};
+    queryParams = {};
+
     @observable currentView = {
         default: null,
         content: null
@@ -14,12 +17,23 @@ export class RouterStore
     // setRoute callback from director
     handler = null;
 
-    constructor({ routes }) {
+    constructor({ routes, currentView }) {
         this.routes = routes;
         this.goTo = this.goTo.bind(this);
+
+        if (currentView) {
+            this.currentView = observable(currentView);
+        }
     }
 
-    goTo(routerState) {
+    goTo(routerState, params, queryParams) {
+        if (typeof routerState === 'string') {
+            routerState = new RouterState({
+                routeName: routerState,
+                params,
+                queryParams
+            });
+        }
         this.handler(routerStateToUrl(this, routerState));
     }
 
@@ -27,11 +41,12 @@ export class RouterStore
         return this.routes[routeName] || null;
     }
 
-    @action.bound
-    onMatch(params, rootStore) {
-        let route = this.currentRoute;
-        this.currentView[route.slot] = () =>
-            typeof route.component === 'function' ? route.component(params, rootStore) : route.component;
+    @action
+    onMatch(rootStore, view) {
+        if (this.currentView.hasOwnProperty(view.slot) && view.component != null) {// @intentionaly !=
+            this.currentView[view.slot] = () =>
+                typeof view.component === 'function' ? view.component(this.params, rootStore) : view.component;
+        }
     }
 }
 
@@ -81,11 +96,16 @@ export class Route
     /**
      * @var {string}
      */
-    path;
+    pattern;
 
     // lifecycle methods
     beforeEnter;
     beforeExit;
+
+    /**
+     * @var {object}
+     */
+    defaultParams = {};
 
     /**
      * @var {object}
@@ -99,8 +119,8 @@ export class Route
             }
         });
 
-        if (this.path.substring(0, 1) !== '/') {
-            this.path = '/' + this.path;
+        if (this.pattern.substring(0, 1) !== '/') {
+            this.pattern = '/' + this.pattern;
         }
     }
 }

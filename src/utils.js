@@ -1,4 +1,6 @@
 import { isPromiseBasedObservable } from 'mobx-utils';
+import { default as pathToRegexp, parse as parsePath } from 'path-to-regexp';
+import { parse as parseQuery } from 'query-string';
 
 const isPromise = (obj) => obj && typeof obj.then === 'function';
 const isObject = (obj) => obj && typeof obj === 'object' && !Array.isArray(obj);
@@ -16,12 +18,12 @@ export const buildFnsArray = (...args) => {
 }
 
 export const compileSyncAction = (rootStore, callback) => {
-    if (!callback) {
-        return noopAsync;
+    if (typeof callback === 'string' && callback !== '') {
+        return callback;
     }
 
-    if (typeof callback === 'string') {
-        return callback;
+    if (typeof callback !== 'function') {
+        return noopAsync;
     }
 
     return (...args) => {
@@ -32,12 +34,12 @@ export const compileSyncAction = (rootStore, callback) => {
 }
 
 export const compileAsyncAction = (rootStore, callback) => {
-    if (!callback) {
-        return noopAsync;
+    if (typeof callback === 'string' && callback !== '') {
+        return callback;
     }
 
-    if (typeof callback === 'string') {
-        return callback;
+    if (typeof callback !== 'function') {
+        return noopAsync;
     }
 
     return (...args) => {
@@ -64,23 +66,59 @@ export const compileAsyncAction = (rootStore, callback) => {
     }
 };
 
-const setCurrentRoute = (routerStore, view) =>
-    (...args) => {
-        const next = args.pop();
-        routerStore.currentRoute = view;
-        next();
-    };
+export const getQuery = function () {
+    const query = window.location.search;
+    return parseQuery(query);
+};
+
+export const getPath = function () {
+    const path = window.location.pathname;
+    if (path.substr(0, 1) !== '/') {
+        path = '/' + path;
+    }
+    return path;
+};
+
+export const buildParamsObject = (pattern, defaultParams = {}) => {
+    const path = getPath();
+    const params = pathToRegexp(pattern).exec(path);
+
+    if (!params) {
+        return null;
+    }
+
+    params.shift();
+    const tokens = parsePath(pattern);
+
+    // in best case scenario tokens.length === params.length and token indexes match params indexes
+    // Known issues:
+    // There are 2 scenarios which are not included in this solution and should be fixed.
+    // - repeat pattern, single token for multiple parsed params
+    //   `/:foo(\d)+` => `/123/456` => ['123', '456']
+    //   should resolve { foo: ['123', '456'] }, but resolves { foo: '123' }
+    // - optionals inside pattern
+    //   `/:lang(cs|en)?/:bar` => /bar => ['bar']
+    //   should resolve { lang: null, bar: 'bar' }, but resolves { lang: 'bar', bar: null }
+    return tokens.filter((token) => typeof token === 'object').reduce((obj, token, index) => {
+        // TODO resolve optionals in the middle of pattern
+        obj[token.name] = params[index] || defaultParams[token.name] || null;
+        return obj;
+    }, {});
+}
 
 export const viewsForDirector = (views, rootStore) =>
     getObjectKeys(views).reduce((obj, viewKey) => {
         const view = views[viewKey];
         const routerStore = rootStore.routerStore;
 
-        obj[view.path] = {
+        obj[view.pattern] = {
             ...viewsForDirector(view.subroutes, rootStore),
-            on: buildFnsArray(view.beforeEnter)
-                .map((fn) => compileAsyncAction(rootStore, fn))
-                .concat(setCurrentRoute(routerStore, view), compileSyncAction(rootStore, routerStore.onMatch))
+            on: buildFnsArray(view.beforeEnter).map((fn) => compileAsyncAction(rootStore, fn))
+                .concat((...args) => {
+                    const next = args.pop();
+                    routerStore.onMatch(rootStore, view)
+                    next();
+                })
         };
 
         return obj;
