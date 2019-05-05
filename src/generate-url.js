@@ -62,9 +62,7 @@ export const routerStateToUrl = (routerStore, toState) => {
         ...route.defaultParams,
     };
 
-    // TODO not every time, we want persist queryParams from previous call
     const queryParams = {
-        ...routerStore.queryParams,
         ...toState.queryParams
     };
 
