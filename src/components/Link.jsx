@@ -2,6 +2,7 @@ import React from 'react';
 import { observer, inject } from 'mobx-react';
 import { RouterState } from '../router-store';
 import { routerStateToUrl } from '../generate-url';
+import { getPath } from '../utils';
 
 class LinkBase extends React.Component
 {
@@ -45,6 +46,7 @@ class LinkBase extends React.Component
             refresh,
             children,
             routerStore,
+            activeClassName,
             ...props
         } = this.props;
 
@@ -52,7 +54,13 @@ class LinkBase extends React.Component
             return null;
         }
 
-        return (<a {...props} href={routerStateToUrl(routerStore, this.toState)} onClick={this.clickHandler}>{children}</a>);
+        let href = routerStateToUrl(routerStore, this.toState);
+
+        if (activeClassName && href === getPath()) {
+            props.className = (props.className || '') + ' ' + activeClassName;
+        }
+
+        return (<a {...props} href={href} onClick={this.clickHandler}>{children}</a>);
     }
 }
 
