@@ -4,6 +4,7 @@
 
 import { compile } from 'path-to-regexp';
 import { stringify } from 'query-string';
+import { toJS } from 'mobx';
 
 const generatorCache = {};
 
@@ -56,10 +57,11 @@ export const routerStateToUrl = (routerStore, toState) => {
         return '#(no route found for ' + toState.routeName + ')';
     }
 
+    const defaultParams = route.view.defaultParams;
     const params = {
-        ...route.defaultParams,
-        ...routerStore.params,
-        ...toState.params,
+        ...defaultParams,
+        ...toJS(routerStore.params),
+        ...toJS(toState.params),
     };
 
     const queryParams = {
