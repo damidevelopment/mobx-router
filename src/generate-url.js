@@ -57,9 +57,9 @@ export const routerStateToUrl = (routerStore, toState) => {
     }
 
     const params = {
+        ...route.defaultParams,
         ...routerStore.params,
         ...toState.params,
-        ...route.defaultParams,
     };
 
     const queryParams = {
