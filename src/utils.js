@@ -2,8 +2,8 @@ import { isPromiseBasedObservable } from 'mobx-utils';
 import { default as pathToRegexp, parse as parsePath } from 'path-to-regexp';
 import { parse as parseQuery } from 'query-string';
 
-const isPromise = (obj) => obj && typeof obj.then === 'function';
-const isObject = (obj) => obj && typeof obj === 'object' && !Array.isArray(obj);
+export const isPromise = (obj) => obj && typeof obj.then === 'function';
+export const isObject = (obj) => obj && typeof obj === 'object' && !Array.isArray(obj);
 
 export const getObjectKeys = (obj) => (isObject(obj) ? Object.keys(obj) : []);
 
