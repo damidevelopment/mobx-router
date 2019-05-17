@@ -1,83 +1,109 @@
-import { observable, action, toJS } from 'mobx';
+import { observable, action } from 'mobx';
 import { routerStateToUrl } from './generate-url';
 
+/**
+ * Class for RouterStore
+ */
 export class RouterStore
 {
-    @observable params = {};
-    @observable queryParams = {};
+    @observable location = null;
 
-    @observable currentView = {
-        default: null,
-        content: null
-    };
+    currentView = null;
 
-    // matched Route object
+    history = null;
+    routes = null;
     currentRoute = null;
 
-    // setRoute callback from director
-    handler = null;
+    /**
+     * RouterStore constructor
+     */
+    constructor() {
+        this.push = this.push.bind(this);
+        this.replace = this.replace.bind(this);
+        this.go = this.go.bind(this);
+        this.goBack = this.goBack.bind(this);
+        this.goForward = this.goForward.bind(this);
+    }
 
-    constructor({ routes, currentView }) {
+    configure({ routes, currentView }) {
+        if (this.routes !== null) {
+            return;
+        }
+
         this.routes = routes;
-        this.goTo = this.goTo.bind(this);
+        this.currentView = observable(currentView);
+    }
 
-        if (currentView) {
-            this.currentView = observable(currentView);
+    @action
+    _updateLocation(newState) {
+        this.location = newState;
+    }
+
+    @action
+    onMatch(params, rootStore, route) {
+        route.isActive = true;
+
+        console.log('onMatch', location);
+
+        // change currentView only when slot exists and component is not empty
+        if (this.currentView.hasOwnProperty(route.slot) && route.component != null) {// @intentionaly !=
+            console.log('onMatch.real', route.slot);
+            this.currentView[route.slot] = () =>
+                typeof route.component === 'function' ? route.component(params, rootStore) : route.component;
         }
     }
 
-    goTo(routerState, params, queryParams) {
-        if (typeof routerState === 'string') {
-            routerState = new RouterState({
-                routeName: routerState,
-                params: toJS(params),
-                queryParams: toJS(queryParams)
-            });
-        }
-        this.handler(routerStateToUrl(this, routerState));
+    goTo(routeName, params, queryParams) {
+        this.history.push(routerStateToUrl(this, {
+            routeName, params, queryParams
+        }));
     }
 
     getRoute(routeName) {
         return this.routes[routeName] || null;
     }
 
-    @action
-    onMatch(rootStore, view) {
-        // change currentView only when slot exists and component is not empty
-        if (this.currentView.hasOwnProperty(view.slot) && view.component != null) {// @intentionaly !=
-            this.currentView[view.slot] = () =>
-                typeof view.component === 'function' ? view.component(this.getRouteParams(), rootStore) : view.component;
-        }
+    getCurrentPath() {
+        return this.location.pathname;
     }
 
-    getRouteParams() {
-        return { ...toJS(this.params), ...toJS(this.queryParams) };
+    /*
+     * History methods
+     */
+
+    push(location) {
+        this.history.push(location);
+    }
+
+    replace(location) {
+        this.history.replace(location);
+    }
+
+    go(n) {
+        this.history.go(n);
+    }
+
+    goBack() {
+        this.history.goBack();
+    }
+
+    goForward() {
+        this.history.goForward();
     }
 }
 
-
-export class RouterState
-{
-    routeName;
-    params = {};
-    queryParams = {};
-
-    constructor(props = {}) {
-        Object.keys(props).forEach((propKey) => {
-            if (this.hasOwnProperty(propKey)) {
-                this[propKey] = props[propKey];
-            }
-        });
-    }
-}
-
-
+/**
+ * Class for Route.
+ */
 export class Route
 {
     /**
      * @var {string}
      */
     slot = 'default';
+
+    final = true;
+    isActive = false;
 
     /**
      * Component can be React.Component or function that returns renderable object.
@@ -96,16 +122,16 @@ export class Route
      * @see [[RouterStore.onMatch]]
      * @var {React.Component|function}
      */
-    component;
+    component = null;
 
     /**
      * @var {string}
      */
-    pattern;
+    pattern = null;
 
     // lifecycle methods
     beforeEnter;
-    beforeExit;
+    onExit;
 
     /**
      * @var {object}
@@ -117,6 +143,7 @@ export class Route
      */
     subroutes = {};
 
+
     constructor(props = {}) {
         Object.keys(props).forEach((propKey) => {
             if (this.hasOwnProperty(propKey)) {
@@ -127,5 +154,25 @@ export class Route
         if (this.pattern.substring(0, 1) !== '/') {
             this.pattern = '/' + this.pattern;
         }
+    }
+
+
+    checkPath(pathname) {
+        //
+    }
+}
+
+export class RouterState
+{
+    routeName;
+    params = {};
+    queryParams = {};
+
+    constructor(props = {}) {
+        Object.keys(props).forEach((propKey) => {
+            if (this.hasOwnProperty(propKey)) {
+                this[propKey] = props[propKey];
+            }
+        });
     }
 }

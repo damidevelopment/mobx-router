@@ -1,12 +1,6 @@
-import { Link } from './components/Link';
-import { MobxRouter } from './components/MobxRouter';
-import { RouterStore, RouterState, Route } from './router-store';
-import { startRouter } from './start-router';
-import { getPath, getQuery } from './utils';
-
-export {
-    getPath, getQuery,
-    MobxRouter, Link,
-    RouterStore, RouterState, Route,
-    startRouter
-};
+export * from './components/MobxRouter';
+export * from './components/Link';
+export * from './start-router';
+export * from './router-store';
+export * from './sync';
+export * from './utils';

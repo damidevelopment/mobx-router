@@ -5,13 +5,14 @@ export const isObject = (obj) => obj && typeof obj === 'object' && !Array.isArra
 
 export const getObjectKeys = (obj) => (isObject(obj) ? Object.keys(obj) : []);
 
-export const buildRoutes = (views, { parentKey, parent } = {}) =>
+export const buildRoutesAndViewSlots = (views, { parentKey, parent } = {}) =>
     getObjectKeys(views).reduce((obj, viewKey) => {
         const view = views[viewKey];
         const key = [parentKey, viewKey].filter(Boolean).join('.');
 
         view.parent = parent || null;
 
+        // TODO: why use final?
         if (view.final) {
             let pattern = [
                 parent ? parent.pattern : null,
@@ -29,15 +30,20 @@ export const buildRoutes = (views, { parentKey, parent } = {}) =>
                 tokens
             };
 
-            obj[key] = view;
+            obj.routes[key] = view;
         }
 
-        const subroutes = buildRoutes(view.subroutes, { parentKey: viewKey, parent: view });
+        obj.currentView[view.slot] = null;
+
+        const result = buildRoutesAndViewSlots(view.subroutes, { parentKey: viewKey, parent: view });
+        const subroutes = result.routes;
+        obj.currentView = { ...obj.currentView, ...result.currentView };
+
         return getObjectKeys(subroutes).reduce((obj, key) => {
-            obj[key] = subroutes[key];
+            obj.routes[key] = subroutes[key];
             return obj;
         }, obj);
-    }, {});
+    }, { routes: {}, currentView: {} });
 
 export const buildParamsObject = (params, tokens, defaultParams = {}) => {
     if (params.input) {

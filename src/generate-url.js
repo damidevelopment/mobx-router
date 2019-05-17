@@ -54,19 +54,25 @@ export const routerStateToUrl = (routerStore, toState) => {
     const route = routerStore.getRoute(toState.routeName);
 
     if (!route) {
-        return '#(no route found for ' + toState.routeName + ')';
+        return '/#(no route found for ' + toState.routeName + ')';
     }
 
-    const defaultParams = route.view.defaultParams;
-    const params = {
-        ...defaultParams,
-        ...toJS(routerStore.params),
-        ...toJS(toState.params),
-    };
+    try {
+        const defaultParams = route.defaultParams;
+        const params = {
+            ...defaultParams,
+            ...toJS(routerStore.params),
+            ...toJS(toState.params),
+        };
 
-    const queryParams = {
-        ...toState.queryParams
-    };
+        const queryParams = {
+            ...toState.queryParams
+        };
 
-    return generateUrl(route.pattern, params, queryParams);
+        return generateUrl(route.pattern, params, queryParams);
+    }
+    catch (e) {
+        console.error('Missing parameter on route ', '\'' + toState.routeName + '\'', "\n", 'Original Error: ', e.message);
+        return '/#(missing param on route ' + toState.routeName + ')';
+    }
 };
