@@ -19,6 +19,7 @@
     "lib/"
   ],
   "scripts": {
+    "dev": "watch 'npm run build' src/",
     "build": "babel src --out-dir lib",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -47,6 +48,7 @@
     "mobx": "^5.1.0",
     "mobx-react": "^5.4.3",
     "react": "^16.8.6",
-    "react-dom": "^16.8.6"
+    "react-dom": "^16.8.6",
+    "watch": "^1.0.2"
   }
 }
