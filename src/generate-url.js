@@ -69,7 +69,7 @@ export const routerStateToUrl = (routerStore, toState) => {
             ...toState.queryParams
         };
 
-        return generateUrl(route.pattern, params, queryParams);
+        return generateUrl(route.path.pattern, params, queryParams);
     }
     catch (e) {
         console.error('Missing parameter on route ', '\'' + toState.routeName + '\'', "\n", 'Original Error: ', e.message);

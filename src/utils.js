@@ -26,9 +26,12 @@ export const buildRoutesAndViewSlots = (views, { parentKey, parent } = {}) =>
             let regexp = pathToRegexp(pattern, tokens);
 
             view.path = {
+                pattern,
                 match: regexp.exec.bind(regexp),
                 tokens
             };
+
+            view.defaultParams = { ...view.defaultParams, ...(parent ? parent.defaultParams : {}) };
 
             obj.routes[key] = view;
         }
