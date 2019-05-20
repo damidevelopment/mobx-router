@@ -40,14 +40,15 @@ class LinkBase extends React.Component
     clickHandler(e) {
         const { refresh = false, routerStore } = this.props;
 
+        let { pathname, search, target } = this.linkRef.current;
+
         const middleClick = e.button === 2;
         const cmdOrCtrl = e.metaKey || e.ctrlKey;
         const openinNewTab = middleClick || cmdOrCtrl;
-        const shouldNavigateManually = refresh || openinNewTab || cmdOrCtrl;
+        const shouldNavigateManually = refresh || openinNewTab || cmdOrCtrl || target === '_blank';
 
         if (!shouldNavigateManually) {
             e.preventDefault();
-            let { pathname, search } = this.linkRef.current;
             routerStore.push({ pathname, search });
         }
     }
