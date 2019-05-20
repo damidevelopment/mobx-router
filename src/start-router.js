@@ -1,4 +1,6 @@
 import { parse as parseQuery } from 'query-string';
+import { createBrowserHistory } from 'history';
+import { syncHistoryWithStore } from './sync';
 import {
     getObjectKeys,
     buildRoutesAndViewSlots,
@@ -8,9 +10,13 @@ import {
     isPromise
 } from './utils';
 
-export const startRouter = (views, store, rootStore) => {
+export const startRouter = (views, rootStore, config = {}) => {
+    const browserHistory = createBrowserHistory();
+    const store = new RouterStore();
+    const history = syncHistoryWithStore(browserHistory, store);
+
     const { routes, currentView } = buildRoutesAndViewSlots(views);
-    store.configure({ routes, currentView });
+    store.configure({ ...config, routes, currentView });
 
     const getPropValuesFromArray = (objArr, prop) =>
         objArr.reduce((arr, obj) => {
@@ -51,7 +57,7 @@ export const startRouter = (views, store, rootStore) => {
         return (isPromise(result) ? result : Promise.resolve(result))
     };
 
-    store.history.subscribe((location, action) => {
+    history.subscribe((location, action) => {
         const matchedRoutes = getObjectKeys(store.routes).reduce((arr, routeName) => {
             const route = store.routes[routeName];
             const keys = route.path.match(location.pathname);
