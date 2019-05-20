@@ -99,10 +99,6 @@ export const startRouter = (views, store, rootStore) => {
 
         // console.log('lookup', newPath, oldPath);
 
-        for (let i in oldPath) {
-            oldPath[i].isActive = false;
-        }
-
         // build fns
         let fns = buildFnsArray(...getPropValuesFromArray(oldPath, 'onExit'))
             /*.map(fn => compileSyncAction(fn))*/;
@@ -127,11 +123,18 @@ export const startRouter = (views, store, rootStore) => {
                         .then(currentResult => ({ ...chainResults, ...currentResult }))
             );
         }, Promise.resolve(match.params))
-            .then((arrayOfResults) => {
-                store.currentRoute = match.route;
-            })
-            // TODO: handle rejected promise
-            .catch((...args) => console.log('catch', args));
+            .then(
+                // set currentRoute on success
+                () => store.currentRoute = match.route,
+                // TODO: handle rejected promise
+                (...args) => console.error('Route error:', ...args)
+            )
+            // finalize
+            .then(() => {
+                for (let i in oldPath) {
+                    oldPath[i].isActive = false;
+                }
+            });
     }); // history.subscribe end
 
     rootStore.routerStore = store;
