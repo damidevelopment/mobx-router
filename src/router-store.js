@@ -14,6 +14,8 @@ export class RouterStore
     routes = null;
     currentRoute = null;
 
+    lock = null;
+
     /**
      * RouterStore constructor
      */
@@ -43,12 +45,14 @@ export class RouterStore
     onMatch(params, rootStore, route) {
         route.isActive = true;
 
-        console.log('onMatch', location);
+        let slot = typeof this.lock === 'string'
+            ? this.lock
+            : Array.isArray(route.slot) ? route.slot[0] : route.slot;
 
         // change currentView only when slot exists and component is not empty
-        if (this.currentView.hasOwnProperty(route.slot) && route.component != null) {// @intentionaly !=
-            console.log('onMatch.real', route.slot);
-            this.currentView[route.slot] = () =>
+        if (this.currentView.hasOwnProperty(slot) && route.component != null) {// @intentionaly !=
+            console.log('onMatch.real', slot);
+            this.currentView[slot] = () =>
                 typeof route.component === 'function' ? route.component(params, rootStore) : route.component;
         }
     }
@@ -71,7 +75,8 @@ export class RouterStore
      * History methods
      */
 
-    push(location) {
+    push(location, { lock = null }) {
+        this.lock = lock;
         this.history.push(location);
     }
 
@@ -154,11 +159,10 @@ export class Route
         if (this.pattern.substring(0, 1) !== '/') {
             this.pattern = '/' + this.pattern;
         }
-    }
 
-
-    checkPath(pathname) {
-        //
+        if (!Array.isArray(this.slot)) {
+            this.slot = [this.slot];
+        }
     }
 }
 

@@ -36,7 +36,10 @@ export const buildRoutesAndViewSlots = (views, { parentKey, parent } = {}) =>
             obj.routes[key] = view;
         }
 
-        obj.currentView[view.slot] = null;
+        obj.currentView = (Array.isArray(view.slot) ? view.slot : [view.slot]).reduce((res, slot) => {
+            res[slot] = null;
+            return res;
+        }, obj.currentView);
 
         const result = buildRoutesAndViewSlots(view.subroutes, { parentKey: viewKey, parent: view });
         const subroutes = result.routes;
