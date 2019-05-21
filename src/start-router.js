@@ -1,5 +1,6 @@
 import { parse as parseQuery } from 'query-string';
 import { createBrowserHistory } from 'history';
+import { RouterStore } from './router-store';
 import { syncHistoryWithStore } from './sync';
 import {
     getObjectKeys,
