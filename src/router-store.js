@@ -75,7 +75,7 @@ export class RouterStore
      * History methods
      */
 
-    push(location, { lock = null }) {
+    push(location, { lock = null } = {}) {
         this.lock = lock;
         this.history.push(location);
     }
