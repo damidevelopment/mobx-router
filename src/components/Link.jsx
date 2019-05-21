@@ -1,8 +1,9 @@
 import React from 'react';
+import { toJS } from 'mobx';
 import { observer, inject } from 'mobx-react';
 import { RouterState } from '../router-store';
 import { routerStateToUrl } from '../generate-url';
-import { getPath } from '../utils';
+import { isObject } from '../utils';
 
 class LinkBase extends React.Component
 {
@@ -14,28 +15,41 @@ class LinkBase extends React.Component
         if (!props.routerStore) {
             console.error('The routerStore prop must be defined for a Link component to work!');
         }
+        this.setRouterState(props);
+        this.linkRef = React.createRef();
+    }
 
-        this.toState = new RouterState({
-            routeName: props.to,
-            params: props.params,
-            queryParams: props.queryParams,
-        });
+    componentDidUpdate(newProps) {
+        console.log('Link.componentDidUpdate');
+        this.setRouterState(newProps);
+    }
+
+    setRouterState(props) {
+        if (isObject(props.to)) {
+            this.toState = new RouterState({ ...props.to });
+        }
+        else {
+            this.toState = new RouterState({
+                routeName: props.to,
+                params: props.params,
+                queryParams: props.queryParams,
+            });
+        }
     }
 
     clickHandler(e) {
-        const {
-            refresh = false,
-            routerStore
-        } = this.props;
+        const { refresh = false, routerStore } = this.props;
+
+        let { pathname, search, target } = this.linkRef.current;
 
         const middleClick = e.button === 2;
         const cmdOrCtrl = e.metaKey || e.ctrlKey;
         const openinNewTab = middleClick || cmdOrCtrl;
-        const shouldNavigateManually = refresh || openinNewTab || cmdOrCtrl;
+        const shouldNavigateManually = refresh || openinNewTab || cmdOrCtrl || target === '_blank';
 
         if (!shouldNavigateManually) {
             e.preventDefault();
-            routerStore.goTo(this.toState);
+            routerStore.push({ pathname, search });
         }
     }
 
@@ -56,11 +70,16 @@ class LinkBase extends React.Component
 
         let href = routerStateToUrl(routerStore, this.toState);
 
-        if (activeClassName && href === getPath()) {
-            props.className = (props.className || '') + ' ' + activeClassName;
+        if (activeClassName) {
+            let index = href.indexOf('?');
+            let routePath = href.substr(0, index < 0 ? href.length : index);
+
+            if (routePath === routerStore.getCurrentPath()) {
+                props.className = (props.className || '') + ' ' + activeClassName;
+            }
         }
 
-        return (<a {...props} href={href} onClick={this.clickHandler}>{children}</a>);
+        return (<a ref={this.linkRef} {...props} href={href} onClick={this.clickHandler}>{children}</a>);
     }
 }
 

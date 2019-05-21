@@ -1,96 +1,60 @@
-import { isPromiseBasedObservable } from 'mobx-utils';
-import { default as pathToRegexp, parse as parsePath } from 'path-to-regexp';
-import { parse as parseQuery } from 'query-string';
+import pathToRegexp from 'path-to-regexp';
 
 export const isPromise = (obj) => obj && typeof obj.then === 'function';
 export const isObject = (obj) => obj && typeof obj === 'object' && !Array.isArray(obj);
 
 export const getObjectKeys = (obj) => (isObject(obj) ? Object.keys(obj) : []);
 
-export const noopAsync = (...args) => {
-    const next = args.pop();
-    next();
-};
+export const buildRoutesAndViewSlots = (views, { parentKey, parent } = {}) =>
+    getObjectKeys(views).reduce((obj, viewKey) => {
+        const view = views[viewKey];
+        const key = [parentKey, viewKey].filter(Boolean).join('.');
 
-export const buildFnsArray = (...args) => {
-    const arr = [];
-    return arr.concat.apply(arr, args).filter(fn => typeof fn === 'function' || typeof fn === 'string');
-}
+        view.parent = parent || null;
 
-export const compileSyncAction = (rootStore, callback) => {
-    if (typeof callback === 'string' && callback !== '') {
-        return callback;
-    }
+        // TODO: why use final?
+        if (view.final) {
+            let pattern = [
+                parent ? parent.pattern : null,
+                view.pattern
+            ]
+                .filter(Boolean)
+                .join('')
+                .replace(/(\/\/+|\/\?)/g, '/');
 
-    if (typeof callback !== 'function') {
-        return noopAsync;
-    }
+            let tokens = [];
+            let regexp = pathToRegexp(pattern, tokens);
 
-    return (...args) => {
-        const next = args.pop();
-        const routerStore = rootStore.routerStore;
-        callback(routerStore.getRouteParams(), rootStore);
-        next();
-    }
-}
+            view.path = {
+                pattern,
+                match: regexp.exec.bind(regexp),
+                tokens
+            };
 
-export const compileAsyncAction = (rootStore, callback) => {
-    if (typeof callback === 'string' && callback !== '') {
-        return callback;
-    }
+            view.defaultParams = { ...view.defaultParams, ...(parent ? parent.defaultParams : {}) };
 
-    if (typeof callback !== 'function') {
-        return noopAsync;
-    }
-
-    return (...args) => {
-        const next = args.pop();
-        const routerStore = rootStore.routerStore;
-        const result = callback(routerStore.getRouteParams(), rootStore);
-
-        // @see mobx-utils fromPromise
-        if (isPromiseBasedObservable(result)) {
-            result.case(
-                () => {},
-                (err) => next(false),
-                () => next()
-            );
+            obj.routes[key] = view;
         }
-        else if (isPromise(result)) {
-            result.then(
-                () => next(),
-                (err) => next(false)
-            );
-        }
-        else {
-            next();
-        }
+
+        obj.currentView = (Array.isArray(view.slot) ? view.slot : [view.slot]).reduce((res, slot) => {
+            res[slot] = null;
+            return res;
+        }, obj.currentView);
+
+        const result = buildRoutesAndViewSlots(view.subroutes, { parentKey: viewKey, parent: view });
+        const subroutes = result.routes;
+        obj.currentView = { ...obj.currentView, ...result.currentView };
+
+        return getObjectKeys(subroutes).reduce((obj, key) => {
+            obj.routes[key] = subroutes[key];
+            return obj;
+        }, obj);
+    }, { routes: {}, currentView: {} });
+
+export const buildParamsObject = (params, tokens, defaultParams = {}) => {
+    if (params.input) {
+        params.shift();
     }
-};
-
-export const getQuery = function () {
-    const query = window.location.search;
-    return parseQuery(query);
-};
-
-export const getPath = function () {
-    const path = window.location.pathname;
-    if (path.substr(0, 1) !== '/') {
-        path = '/' + path;
-    }
-    return path;
-};
-
-export const buildParamsObject = (pattern, defaultParams = {}) => {
-    const path = getPath();
-    const params = pathToRegexp(pattern).exec(path);
-
-    if (!params) {
-        return null;
-    }
-
-    params.shift();
-    const tokens = parsePath(pattern);
 
     // in best case scenario tokens.length === params.length and token indexes match params indexes
     // Known issues:
@@ -108,20 +72,26 @@ export const buildParamsObject = (pattern, defaultParams = {}) => {
     }, {});
 }
 
-export const viewsForDirector = (views, rootStore) =>
-    getObjectKeys(views).reduce((obj, viewKey) => {
-        const view = views[viewKey];
-        const routerStore = rootStore.routerStore;
+const buildLookupPathInner = (route) => {
+    let path = [];
+    if (route) {
+        path = path.concat([route], buildLookupPathInner(route.parent));
+    }
+    return path;
+}
 
-        obj[view.pattern] = {
-            ...viewsForDirector(view.subroutes, rootStore),
-            on: buildFnsArray(view.beforeEnter).map((fn) => compileAsyncAction(rootStore, fn))
-                .concat((...args) => {
-                    const next = args.pop();
-                    routerStore.onMatch(rootStore, view)
-                    next();
-                })
-        };
+export const buildLookupPath = (route, { filterFn, reverse = true } = {}) => {
+    let path = buildLookupPathInner(route);
+    path = (path.length === 0 ? [route] : path);
+    if (Boolean(reverse)) {
+        path.reverse();
+    }
+    return path
+        .filter(route => route)/*
+        .filter(typeof filterFn === 'function' ? filterFn : () => true)*/;
+}
 
-        return obj;
-    }, {});
+export const buildFnsArray = (...args) => {
+    const arr = [];
+    return arr.concat.apply(arr, args).filter(fn => typeof fn === 'function' || typeof fn === 'string');
+}

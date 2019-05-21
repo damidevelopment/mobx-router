@@ -1,116 +1,159 @@
-import { Router } from 'director/build/director';
-import {
-    viewsForDirector,
-    noopAsync,
-    compileAsyncAction,
-    compileSyncAction,
-    getObjectKeys,
-    buildFnsArray,
-    buildParamsObject,
-    getQuery
-} from './utils';
+import { parse as parseQuery } from 'query-string';
+import { createBrowserHistory } from 'history';
 import { RouterStore } from './router-store';
-import { action } from 'mobx';
+import { syncHistoryWithStore } from './sync';
+import {
+    getObjectKeys,
+    buildRoutesAndViewSlots,
+    buildLookupPath,
+    buildParamsObject,
+    buildFnsArray,
+    isPromise
+} from './utils';
 
-const routeBeforeExit = (rootStore, director) =>
-    (...args) => {
-        noopAsync.apply(undefined, args);
-        return;
+export const startRouter = (views, rootStore, { resources, ...config } = {}) => {
+    const browserHistory = createBrowserHistory();
+    const store = rootStore.routerStore = new RouterStore();
+    const history = syncHistoryWithStore(browserHistory, store);
 
-        const routerStore = rootStore.routerStore;
-        const view = routerStore.currentRoute;
+    const { routes, currentView } = buildRoutesAndViewSlots(views);
+    store.configure({ ...config, routes, currentView });
 
-        if (view.beforeExit == null) {// @intentionaly ==
-            noopAsync.apply(undefined, args);
-        } else {
-            let next = args.pop();
-            let fns = buildFnsArray(view.beforeExit).map((fn) => compileAsyncAction(rootStore, fn));
-            director.invoke(fns, director, next);
-        }
-    };
+    const getPropValuesFromArray = (objArr, prop) =>
+        objArr.reduce((arr, obj) => {
+            arr.push(obj[prop]);
+            return arr;
+        }, []);
 
-const setCurrentRoute = (routerStore) =>
-    action((...args) => {
-        const next = args.pop();
+    const buildAction = (fn) => {
+        let runAction;
 
-        for (const name in routerStore.routes) {
-            let route = routerStore.routes[name];
-            const params = buildParamsObject(route.pattern, route.defaultParams);
+        if (typeof fn === 'string') {
+            let path = fn.split('.');
+            let obj = path[0];
+            let action = path[1];
 
-            if (params) {
-                routerStore.params = params;
-                routerStore.queryParams = getQuery();
-                routerStore.currentRoute = route;
-                break;
+            console.log('buildAction', resources);
+            if (resources.hasOwnProperty(obj) && typeof resources[obj][action] === 'function') {
+                runAction = resources[obj][action];
+            }
+            else {
+                runAction = () => {
+                    console.error('Resource "', path.join('.'), '" does not exists!');
+                    return Promise.resolve();
+                }
             }
         }
-        next();
-    });
+        else if (typeof fn === 'function') {
+            runAction = fn;
+        }
 
-/**
- * Initialize and cofigure director router
- *
- * @param  {object}               views             List of routes and subroutes
- * @param  {object|RootStore}     rootStore         App rootStore object
- * @param  {function|function[]}  options.onEnter   Action or list of Actions
- * @param  {function|function[]}  options.onExit    Action or list of Actions
- * @param  {function}             options.notFound  Not found Action
- * @return {void}
- */
-const createDirectorRouter = (views, rootStore, { onEnter, onExit, notFound, resource } = {}) => {
-    const director = new Router({ ...viewsForDirector(views, rootStore) });
-    const routerStore = rootStore.routerStore;
+        return runAction;
+    };
 
-    // handler for changing routes
-    routerStore.handler = director.setRoute.bind(director);
-
-    director.configure({
-        recurse: 'forward',
-        async: true,
-        html5history: true,
-        before: [setCurrentRoute(routerStore)].concat(
-            buildFnsArray(onEnter).map((fn) => compileSyncAction(rootStore, fn))
-        ),
-        after: buildFnsArray(onExit).map((fn) => compileSyncAction(rootStore, fn)),
-        notfound: compileSyncAction(rootStore, notFound),
-        resource: getObjectKeys(resource).reduce((obj, name) => {
-            let fn  = resource[name];
-            obj[name] = compileAsyncAction(rootStore, fn);
-            return obj;
-        }, {})
-    });
-    director.init();
-};
-
-const buildRoutes = (views, { parentKey, parent } = {}) =>
-    getObjectKeys(views).reduce((obj, viewKey) => {
-        const view = views[viewKey];
-        const key = [parentKey, viewKey].filter(Boolean).join('.');
-
-        let pattern = [
-            parent ? parent.pattern : null,
-            view.pattern
-        ]
-            .filter(Boolean)
-            .join('')
-            .replace(/(\/\/+|\/\?)/g, '/');
-
-        obj[key] = {
-            view,
-            pattern
+    const compileSyncAction = (callback) => {
+        return (...args) => {
+            let runAction = buildAction(callback);
+            return runAction(...args);
         };
+    };
 
-        const subroutes = buildRoutes(view.subroutes, { parentKey: viewKey, parent: view });
-        return getObjectKeys(subroutes).reduce((obj, key) => {
-            obj[key] = subroutes[key];
-            return obj;
-        }, obj);
-    }, {});
+    const apply = (task, params) => {
+        const runAction = buildAction(task);
+        const result = typeof runAction === 'function'
+            ? runAction(params, rootStore)
+            : null;
 
-export const startRouter = (views, rootStore, { currentView, ...config }) => {
-    const routes = buildRoutes(views);
-    rootStore.routerStore = new RouterStore({ routes, currentView });
+        return (isPromise(result) ? result : Promise.resolve(result))
+    };
 
-    //create director configuration
-    createDirectorRouter(views, rootStore, config);
-};
+    history.subscribe((location, action) => {
+        const matchedRoutes = getObjectKeys(store.routes).reduce((arr, routeName) => {
+            const route = store.routes[routeName];
+            const keys = route.path.match(location.pathname);
+
+            if (keys) {
+                let params = {
+                    ...buildParamsObject(keys, route.path.tokens),
+                    ...parseQuery(location.search)
+                };
+
+                arr.push({ route, params });
+            }
+
+            return arr;
+        }, []);
+
+        // matchedRoutes
+        //     .filter(match => match.route.final)
+        //     .forEach(match => console.log('whoooo', match));
+
+        if (matchedRoutes.length > 1) {
+            // TODO: if more than one route is matched, what to do?
+        }
+
+        let match = matchedRoutes.shift();
+
+        // TODO: when 404 happens, should we redirect or replace?
+        // default redirect
+        if (!match) {
+            console.log('404 Not Found!');
+            // store.replace('notFound');
+            return;
+            // route = store.routes.notFound;
+        }
+
+        // add only routes that are not currently active
+        let newPath = buildLookupPath(match.route);
+
+        // call onExit
+        // add routes from previous path for onExit calls
+        const oldPath = buildLookupPath(store.currentRoute, { reverse: false })
+            .filter(route => route.isActive && !newPath.includes(route));
+
+        // TODO there should be check if route params changed
+        newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1/* && route !== store.currentRoute*/));
+
+        console.log('lookup', newPath, oldPath);
+
+        // build fns
+        let fns = buildFnsArray(...getPropValuesFromArray(oldPath, 'onExit'))
+            /*.map(fn => compileSyncAction(fn))*/;
+
+        for (let i = 0; i < newPath.length; i++) {
+            let route = newPath[i];
+            fns = fns.concat(
+                buildFnsArray(route.beforeEnter, (params, rootStore) => {
+                    store.onMatch(params, rootStore, route);
+                })
+            );
+        }
+
+        console.log('callback fns', fns);
+
+        // invoke fns
+        // @see https://decembersoft.com/posts/promises-in-serial-with-array-reduce/
+        fns.reduce((promiseChain, currentTask) => {
+            return promiseChain.then(
+                chainResults =>
+                    apply(currentTask, chainResults)
+                        .then(currentResult => ({ ...chainResults, ...currentResult }))
+            );
+        }, Promise.resolve(match.params))
+            .then(
+                // set currentRoute on success
+                () => {
+                    store.params = match.params;
+                    store.currentRoute = match.route;
+                },
+                // TODO: handle rejected promise
+                (...args) => console.error('Route error:', ...args)
+            )
+            // finalize
+            .then(() => {
+                for (let i in oldPath) {
+                    oldPath[i].isActive = false;
+                }
+            });
+    }); // history.subscribe end
+}
