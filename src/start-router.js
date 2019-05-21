@@ -11,9 +11,9 @@ import {
     isPromise
 } from './utils';
 
-export const startRouter = (views, rootStore, config = {}) => {
+export const startRouter = (views, rootStore, { resources, ...config } = {}) => {
     const browserHistory = createBrowserHistory();
-    const store = new RouterStore();
+    const store = rootStore.routerStore = new RouterStore();
     const history = syncHistoryWithStore(browserHistory, store);
 
     const { routes, currentView } = buildRoutesAndViewSlots(views);
@@ -26,20 +26,29 @@ export const startRouter = (views, rootStore, config = {}) => {
         }, []);
 
     const buildAction = (fn) => {
-        let action;
+        let runAction;
 
         if (typeof fn === 'string') {
-            // TODO resources
-            action = () => {
-                console.warn('TODO: When task is String, look into resources!');
-                return Promise.resolve();
+            let path = fn.split('.');
+            let obj = path[0];
+            let action = path[1];
+
+            console.log('buildAction', resources);
+            if (resources.hasOwnProperty(obj) && typeof resources[obj][action] === 'function') {
+                runAction = resources[obj][action];
+            }
+            else {
+                runAction = () => {
+                    console.error('Resource "', path.join('.'), '" does not exists!');
+                    return Promise.resolve();
+                }
             }
         }
         else if (typeof fn === 'function') {
-            action = fn;
+            runAction = fn;
         }
 
-        return action;
+        return runAction;
     };
 
     const compileSyncAction = (callback) => {
@@ -102,9 +111,10 @@ export const startRouter = (views, rootStore, config = {}) => {
         const oldPath = buildLookupPath(store.currentRoute, { reverse: false })
             .filter(route => route.isActive && !newPath.includes(route));
 
-        newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1 && route !== store.currentRoute));
+        // TODO there should be check if route params changed
+        newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1/* && route !== store.currentRoute*/));
 
-        // console.log('lookup', newPath, oldPath);
+        console.log('lookup', newPath, oldPath);
 
         // build fns
         let fns = buildFnsArray(...getPropValuesFromArray(oldPath, 'onExit'))
@@ -119,7 +129,7 @@ export const startRouter = (views, rootStore, config = {}) => {
             );
         }
 
-        // console.log('callback fns', fns);
+        console.log('callback fns', fns);
 
         // invoke fns
         // @see https://decembersoft.com/posts/promises-in-serial-with-array-reduce/
@@ -132,7 +142,10 @@ export const startRouter = (views, rootStore, config = {}) => {
         }, Promise.resolve(match.params))
             .then(
                 // set currentRoute on success
-                () => store.currentRoute = match.route,
+                () => {
+                    store.params = match.params;
+                    store.currentRoute = match.route;
+                },
                 // TODO: handle rejected promise
                 (...args) => console.error('Route error:', ...args)
             )
@@ -143,6 +156,4 @@ export const startRouter = (views, rootStore, config = {}) => {
                 }
             });
     }); // history.subscribe end
-
-    rootStore.routerStore = store;
 }

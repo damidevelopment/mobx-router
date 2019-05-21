@@ -8,6 +8,8 @@ export class RouterStore
 {
     @observable location = null;
 
+    params = {};
+
     currentView = null;
 
     history = null;
