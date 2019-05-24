@@ -20,7 +20,6 @@ class LinkBase extends React.Component
     }
 
     componentDidUpdate(newProps) {
-        console.log('Link.componentDidUpdate');
         this.setRouterState(newProps);
     }
 
