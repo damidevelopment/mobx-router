@@ -33,7 +33,6 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
             let obj = path[0];
             let action = path[1];
 
-            console.log('buildAction', resources);
             if (resources.hasOwnProperty(obj) && typeof resources[obj][action] === 'function') {
                 runAction = resources[obj][action];
             }
@@ -97,8 +96,8 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         // TODO: when 404 happens, should we redirect or replace?
         // default redirect
         if (!match) {
-            console.log('404 Not Found!');
-            // store.replace('notFound');
+            console.error('404 Not Found!');
+            store.replace('notFound');
             return;
             // route = store.routes.notFound;
         }
@@ -114,8 +113,6 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         // TODO there should be check if route params changed
         newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1/* && route !== store.currentRoute*/));
 
-        console.log('lookup', newPath, oldPath);
-
         // build fns
         let fns = buildFnsArray(...getPropValuesFromArray(oldPath, 'onExit'))
             /*.map(fn => compileSyncAction(fn))*/;
@@ -128,8 +125,6 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
                 })
             );
         }
-
-        console.log('callback fns', fns);
 
         // invoke fns
         // @see https://decembersoft.com/posts/promises-in-serial-with-array-reduce/

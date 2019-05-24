@@ -20,7 +20,6 @@ class LinkBase extends React.Component
     }
 
     componentDidUpdate(newProps) {
-        console.log('Link.componentDidUpdate');
         this.setRouterState(newProps);
     }
 
@@ -48,8 +47,14 @@ class LinkBase extends React.Component
         const shouldNavigateManually = refresh || openinNewTab || cmdOrCtrl || target === '_blank';
 
         if (!shouldNavigateManually) {
-            e.preventDefault();
-            routerStore.push({ pathname, search });
+            if (typeof this.props.onClick === 'function') {
+                this.props.onClick(e);
+
+                if (!e.defaultPrevented) {
+                    e.preventDefault();
+                    routerStore.push({ pathname, search });
+                }
+            }
         }
     }
 
