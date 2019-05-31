@@ -49,14 +49,15 @@ class LinkBase extends React.Component
         if (!shouldNavigateManually) {
             if (typeof this.props.onClick === 'function') {
                 this.props.onClick(e);
+            }
 
-                if (!e.defaultPrevented) {
-                    e.preventDefault();
-                    routerStore.push({ pathname, search });
-                }
+            if (!e.defaultPrevented) {
+                e.preventDefault();
+                routerStore.push({ pathname, search });
             }
         }
     }
+
 
     render() {
         const {
