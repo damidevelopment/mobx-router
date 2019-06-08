@@ -97,7 +97,7 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         // default redirect
         if (!match) {
             console.error('404 Not Found!');
-            store.replace('notFound');
+            store.goTo('notFound');
             return;
             // route = store.routes.notFound;
         }
