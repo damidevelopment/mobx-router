@@ -15,12 +15,7 @@ class LinkBase extends React.Component
         if (!props.routerStore) {
             console.error('The routerStore prop must be defined for a Link component to work!');
         }
-        this.setRouterState(props);
         this.linkRef = React.createRef();
-    }
-
-    componentDidUpdate(newProps) {
-        this.setRouterState(newProps);
     }
 
     setRouterState(props) {
@@ -60,6 +55,8 @@ class LinkBase extends React.Component
 
 
     render() {
+        this.setRouterState(this.props);
+
         const {
             params,
             queryParams,

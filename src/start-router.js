@@ -97,7 +97,7 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         // default redirect
         if (!match) {
             console.error('404 Not Found!');
-            store.replace('notFound');
+            store.goTo('notFound');
             return;
             // route = store.routes.notFound;
         }
@@ -112,6 +112,10 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
 
         // TODO there should be check if route params changed
         newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1/* && route !== store.currentRoute*/));
+
+        // set currentRoute
+        store.params = match.params;
+        store.currentRoute = match.route;
 
         // build fns
         let fns = buildFnsArray(...getPropValuesFromArray(oldPath, 'onExit'))
@@ -136,10 +140,8 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
             );
         }, Promise.resolve(match.params))
             .then(
-                // set currentRoute on success
                 () => {
-                    store.params = match.params;
-                    store.currentRoute = match.route;
+
                 },
                 // TODO: handle rejected promise
                 (...args) => console.error('Route error:', ...args)
