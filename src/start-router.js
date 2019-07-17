@@ -12,8 +12,13 @@ import {
 } from './utils';
 
 export const startRouter = (views, rootStore, { resources, ...config } = {}) => {
+    const store = new RouterStore();
+
+    typeof rootStore === 'function'
+        ? (rootStore = rootStore(store))
+        : (rootStore.routerStore = store);
+
     const browserHistory = createBrowserHistory();
-    const store = rootStore.routerStore = new RouterStore();
     const history = syncHistoryWithStore(browserHistory, store);
 
     const { routes, currentView } = buildRoutesAndViewSlots(views);
