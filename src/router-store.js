@@ -133,8 +133,8 @@ export class Route
     pattern = '';
 
     // lifecycle methods
-    beforeEnter;
-    onExit;
+    _beforeEnter = [];
+    _onExit = [];
 
     /**
      * @var {object}
@@ -146,6 +146,8 @@ export class Route
      */
     subroutes = {};
 
+    _context = false;
+    _defaultContext = {};
 
     constructor(props = {}) {
         Object.keys(props).forEach((propKey) => {
@@ -157,6 +159,47 @@ export class Route
         if (this.pattern.substring(0, 1) !== '/') {
             this.pattern = '/' + this.pattern;
         }
+    }
+
+    set context(state) {
+        if (!state) {
+            this._context = false;
+            return void 0;
+        }
+        if (typeof state === 'string') {
+            state = { routeName: state };
+        }
+        this._context = { ...state };
+    }
+
+    get context() {
+        return this._context;
+    }
+
+    set beforeEnter(arr) {
+        if (typeof arr === 'function') {
+            arr = [arr];
+        }
+        if (Array.isArray(arr)) {
+            this._beforeEnter = this._beforeEnter.concat(arr);
+        }
+    }
+
+    get beforeEnter() {
+        return this._beforeEnter;
+    }
+
+    set onExit(arr) {
+        if (typeof arr === 'function') {
+            arr = [arr];
+        }
+        if (Array.isArray(arr)) {
+            this._onExit = this._onExit.concat(arr);
+        }
+    }
+
+    get onExit() {
+        return this._onExit;
     }
 }
 
