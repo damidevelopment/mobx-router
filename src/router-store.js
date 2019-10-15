@@ -14,9 +14,13 @@ export class RouterStore
 
     history = null;
     routes = null;
-    currentRoute = null;
 
-    lock = null;
+    _previousLocation = null;
+
+    _currentRoute = null;
+    _previousRoute = null;
+
+    slot = null;
 
     /**
      * RouterStore constructor
@@ -70,6 +74,30 @@ export class RouterStore
         return this.location.pathname;
     }
 
+    // routes history
+
+    set currentRoute(newRoute) {
+        if (this._currentRoute && this._currentRoute.final) {
+            this._previousRoute = this._currentRoute;
+        }
+        this._currentRoute = newRoute;
+    }
+
+    get currentRoute() {
+        return this._currentRoute;
+    }
+
+    get previousRoute() {
+        return this._previousRoute;
+    }
+
+    set previousLocation(location) {
+        this._previousLocation = location;
+    }
+
+    get previousLocation() {
+        return this._previousLocation;
+    }
     /*
      * History methods
      */
