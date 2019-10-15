@@ -65,7 +65,7 @@ export const buildParamsObject = (params, tokens, defaultParams = {}) => {
     // - optionals inside pattern
     //   `/:lang(cs|en)?/:bar` => /bar => ['bar']
     //   should resolve { lang: null, bar: 'bar' }, but resolves { lang: 'bar', bar: null }
-    return tokens.filter((token) => typeof token === 'object').reduce((obj, token, index) => {
+    return tokens.filter((token) => token && typeof token === 'object').reduce((obj, token, index) => {
         // TODO resolve optionals in the middle of pattern
         obj[token.name] = params[index] || defaultParams[token.name] || null;
         return obj;

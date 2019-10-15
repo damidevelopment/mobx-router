@@ -78,7 +78,7 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
 
             if (keys) {
                 let params = {
-                    ...buildParamsObject(keys, route.path.tokens),
+                    ...buildParamsObject(keys, route.path.tokens, route.defaultParams),
                     ...parseQuery(location.search)
                 };
 
@@ -92,9 +92,9 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         //     .filter(match => match.route.final)
         //     .forEach(match => console.log('whoooo', match));
 
-        if (matchedRoutes.length > 1) {
-            // TODO: if more than one route is matched, what to do?
-        }
+        // TODO: if more than one route is matched, what to do?
+        // if (matchedRoutes.length > 1) {
+        // }
 
         let match = matchedRoutes.shift();
 

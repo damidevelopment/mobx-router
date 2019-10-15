@@ -47,9 +47,7 @@ export class RouterStore
     onMatch(params, rootStore, route) {
         route.isActive = true;
 
-        let slot = typeof this.lock === 'string'
-            ? this.lock
-            : Array.isArray(route.slot) ? route.slot[0] : route.slot;
+        const slot = route.slot;
 
         // change currentView only when slot exists and component is not empty
         if (this.currentView.hasOwnProperty(slot) && route.component != null) {// @intentionaly !=
@@ -76,8 +74,7 @@ export class RouterStore
      * History methods
      */
 
-    push(location, { lock = null } = {}) {
-        this.lock = lock;
+    push(location) {
         this.history.push(location);
     }
 
@@ -133,7 +130,7 @@ export class Route
     /**
      * @var {string}
      */
-    pattern = null;
+    pattern = '';
 
     // lifecycle methods
     beforeEnter;
@@ -159,10 +156,6 @@ export class Route
 
         if (this.pattern.substring(0, 1) !== '/') {
             this.pattern = '/' + this.pattern;
-        }
-
-        if (!Array.isArray(this.slot)) {
-            this.slot = [this.slot];
         }
     }
 }
