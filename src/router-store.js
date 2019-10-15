@@ -61,9 +61,8 @@ export class RouterStore
     }
 
     goTo(routeName, params, queryParams) {
-        this.history.push(routerStateToUrl(this, {
-            routeName, params, queryParams
-        }));
+        const url = this.createUrlFromState({ routeName, params, queryParams });
+        this.history.push(url);
     }
 
     getRoute(routeName) {
@@ -98,6 +97,19 @@ export class RouterStore
     get previousLocation() {
         return this._previousLocation;
     }
+
+    /**
+     * Converts the supplied state to a URL
+     * @param {RouterState|string} state
+     * @returns {string}
+     */
+    createUrlFromState(toState) {
+        if (typeof toState === 'string') {
+            toState = { routeName: toState, params: {}, queryParams: {} };
+        }
+        return routerStateToUrl(this, toState);
+    }
+
     /*
      * History methods
      */
