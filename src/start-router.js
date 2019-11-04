@@ -55,13 +55,6 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         return runAction;
     };
 
-    const compileSyncAction = (callback) => {
-        return (...args) => {
-            let runAction = buildAction(callback);
-            return runAction(...args);
-        };
-    };
-
     const apply = (task, params) => {
         const runAction = buildAction(task);
         const result = typeof runAction === 'function'
@@ -78,7 +71,7 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
 
             if (keys) {
                 let params = {
-                    ...buildParamsObject(keys, route.path.tokens),
+                    ...buildParamsObject(keys, route.path.tokens, route.defaultParams),
                     ...parseQuery(location.search)
                 };
 
@@ -88,13 +81,9 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
             return arr;
         }, []);
 
-        // matchedRoutes
-        //     .filter(match => match.route.final)
-        //     .forEach(match => console.log('whoooo', match));
-
-        if (matchedRoutes.length > 1) {
-            // TODO: if more than one route is matched, what to do?
-        }
+        // TODO: if more than one route is matched, what to do?
+        // if (matchedRoutes.length > 1) {
+        // }
 
         let match = matchedRoutes.shift();
 
@@ -107,20 +96,51 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
             // route = store.routes.notFound;
         }
 
-        // add only routes that are not currently active
-        let newPath = buildLookupPath(match.route);
+        // build new path for matched route
+        let newPath = [];
 
-        // call onExit
-        // add routes from previous path for onExit calls
-        const oldPath = buildLookupPath(store.currentRoute, { reverse: false })
+        if (match.route.context === null) {
+            match.route.context = store.currentRoute ? {
+                routeName: store.currentRoute.pathname,
+                params: store.params,
+            } : match.route.defaultContext;
+        }
+
+        if (match.route.context) {
+            let { routeName, params } = match.route.context;
+            let route = store.routes[routeName];
+            if (route) {
+                newPath = newPath.concat(buildLookupPath(route));
+                match.params = { ...params, ...match.params };
+            }
+        }
+
+        newPath = newPath.concat(buildLookupPath(match.route));
+
+        // add routes from previous path for onExit event trigger
+        let oldPath = buildLookupPath(store.currentRoute)
+            .reverse()
             .filter(route => route.isActive && !newPath.includes(route));
 
+        // filter all inactive routes from newPath except last one
         // TODO there should be check if route params changed
-        newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1/* && route !== store.currentRoute*/));
+        newPath = [...new Set(newPath)];
+        newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
+
+        // build params
+        const pathParams = newPath.reduce((obj, route) => {
+            return { ...route.defaultParams, ...obj };
+        }, match.params);
+
+        if (newPath.length > 0 && oldPath.length > 0 && newPath[newPath.length - 1].slot !== oldPath[0].slot && oldPath[0].context !== false) {
+            let { routeName } = oldPath[0].context;
+            let route = store.routes[routeName];
+            let contextOldPath = buildLookupPath(route).reverse().filter(route => route.isActive);
+            oldPath = oldPath.concat(contextOldPath);
+        }
 
         // build fns
-        let fns = buildFnsArray(...getPropValuesFromArray(oldPath, 'onExit'))
-            /*.map(fn => compileSyncAction(fn))*/;
+        let fns = buildFnsArray(...getPropValuesFromArray(oldPath, 'onExit'));
 
         for (let i = 0; i < newPath.length; i++) {
             let route = newPath[i];
@@ -139,19 +159,25 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
                     apply(currentTask, chainResults)
                         .then(currentResult => ({ ...chainResults, ...currentResult }))
             );
-        }, Promise.resolve(match.params))
+        }, Promise.resolve(pathParams))
             .then(
-                // set currentRoute on success
                 () => {
-                    store.params = match.params;
+                    // set current route and params
+                    store.params = pathParams;
                     store.currentRoute = match.route;
+
+                    // set previous location
+                    store.previousLocation = location;
                 },
                 // TODO: handle rejected promise
                 (...args) => console.error('Route error:', ...args)
             )
-            // finalize
+            // finally
             .then(() => {
                 for (let i in oldPath) {
+                    if (oldPath[i].context !== false) {
+                        oldPath[i].context = null;
+                    }
                     oldPath[i].isActive = false;
                 }
             });

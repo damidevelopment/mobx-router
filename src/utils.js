@@ -1,7 +1,7 @@
 import pathToRegexp from 'path-to-regexp';
 
-export const isPromise = (obj) => obj && typeof obj.then === 'function';
-export const isObject = (obj) => obj && typeof obj === 'object' && !Array.isArray(obj);
+export const isPromise = (obj) => isObject(obj) && typeof obj.then === 'function';
+export const isObject = (obj) => obj != null && typeof obj === 'object' && !Array.isArray(obj);
 
 export const getObjectKeys = (obj) => (isObject(obj) ? Object.keys(obj) : []);
 
@@ -10,6 +10,7 @@ export const buildRoutesAndViewSlots = (views, { parentKey, parent } = {}) =>
         const view = views[viewKey];
         const key = [parentKey, viewKey].filter(Boolean).join('.');
 
+        view.name = viewKey;
         view.parent = parent || null;
 
         // TODO: why use final?
@@ -65,7 +66,7 @@ export const buildParamsObject = (params, tokens, defaultParams = {}) => {
     // - optionals inside pattern
     //   `/:lang(cs|en)?/:bar` => /bar => ['bar']
     //   should resolve { lang: null, bar: 'bar' }, but resolves { lang: 'bar', bar: null }
-    return tokens.filter((token) => typeof token === 'object').reduce((obj, token, index) => {
+    return tokens.filter((token) => token && typeof token === 'object').reduce((obj, token, index) => {
         // TODO resolve optionals in the middle of pattern
         obj[token.name] = params[index] || defaultParams[token.name] || null;
         return obj;
@@ -80,15 +81,10 @@ const buildLookupPathInner = (route) => {
     return path;
 }
 
-export const buildLookupPath = (route, { filterFn, reverse = true } = {}) => {
+export const buildLookupPath = (route) => {
     let path = buildLookupPathInner(route);
     path = (path.length === 0 ? [route] : path);
-    if (Boolean(reverse)) {
-        path.reverse();
-    }
-    return path
-        .filter(route => route)/*
-        .filter(typeof filterFn === 'function' ? filterFn : () => true)*/;
+    return path.reverse().filter(route => route);
 }
 
 export const buildFnsArray = (...args) => {
