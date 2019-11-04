@@ -14,9 +14,13 @@ export class RouterStore
 
     history = null;
     routes = null;
-    currentRoute = null;
 
-    lock = null;
+    _previousLocation = null;
+
+    _currentRoute = null;
+    _previousRoute = null;
+
+    slot = null;
 
     /**
      * RouterStore constructor
@@ -47,9 +51,7 @@ export class RouterStore
     onMatch(params, rootStore, route) {
         route.isActive = true;
 
-        let slot = typeof this.lock === 'string'
-            ? this.lock
-            : Array.isArray(route.slot) ? route.slot[0] : route.slot;
+        const slot = route.slot;
 
         // change currentView only when slot exists and component is not empty
         if (this.currentView.hasOwnProperty(slot) && route.component != null) {// @intentionaly !=
@@ -59,9 +61,8 @@ export class RouterStore
     }
 
     goTo(routeName, params, queryParams) {
-        this.history.push(routerStateToUrl(this, {
-            routeName, params, queryParams
-        }));
+        const url = this.createUrlFromState({ routeName, params, queryParams });
+        this.history.push(url);
     }
 
     getRoute(routeName) {
@@ -72,16 +73,54 @@ export class RouterStore
         return this.location.pathname;
     }
 
+    // routes history
+
+    set currentRoute(newRoute) {
+        if (this._currentRoute && this._currentRoute.final) {
+            this._previousRoute = this._currentRoute;
+        }
+        this._currentRoute = newRoute;
+    }
+
+    get currentRoute() {
+        return this._currentRoute;
+    }
+
+    get previousRoute() {
+        return this._previousRoute;
+    }
+
+    set previousLocation(location) {
+        this._previousLocation = location;
+    }
+
+    get previousLocation() {
+        return this._previousLocation;
+    }
+
+    /**
+     * Converts the supplied state to a URL
+     * @param {RouterState|string} state
+     * @returns {string}
+     */
+    createUrlFromState(toState) {
+        if (typeof toState === 'string') {
+            toState = { routeName: toState, params: {}, queryParams: {} };
+        }
+        return routerStateToUrl(this, toState);
+    }
+
     /*
      * History methods
      */
 
-    push(location, { lock = null } = {}) {
-        this.lock = lock;
+    push(routeName) {
+        let location = this.routes.hasOwnProperty(routeName) ? this.createUrlFromState({ routeName }): routeName;
         this.history.push(location);
     }
 
-    replace(location) {
+    replace(routeName) {
+        let location = this.routes.hasOwnProperty(routeName) ? this.createUrlFromState({ routeName }): routeName;
         this.history.replace(location);
     }
 
@@ -130,14 +169,16 @@ export class Route
      */
     component = null;
 
+    name = null;
+
     /**
      * @var {string}
      */
-    pattern = null;
+    pattern = '';
 
     // lifecycle methods
-    beforeEnter;
-    onExit;
+    _beforeEnter = [];
+    _onExit = [];
 
     /**
      * @var {object}
@@ -149,6 +190,10 @@ export class Route
      */
     subroutes = {};
 
+    path = {};
+
+    _context = false;
+    defaultContext = {};
 
     constructor(props = {}) {
         Object.keys(props).forEach((propKey) => {
@@ -161,9 +206,57 @@ export class Route
             this.pattern = '/' + this.pattern;
         }
 
-        if (!Array.isArray(this.slot)) {
-            this.slot = [this.slot];
+        this.beforeEnter = props.beforeEnter;
+        this.onExit = props.onExit;
+    }
+
+    get pathname() {
+        let route = this;
+        let path = [route.name];
+        while (route = route.parent) {
+            path.push(route.name);
         }
+        return path.filter(i => i).reverse().join('.');
+    }
+
+    set context(state) {
+        if (typeof state === 'string') {
+            state = { routeName: state };
+        }
+        if (state !== null) {
+            state = false;
+        }
+        this._context = state;
+    }
+
+    get context() {
+        return this._context;
+    }
+
+    set beforeEnter(arr) {
+        if (typeof arr === 'function' || typeof arr === 'string') {
+            arr = [arr];
+        }
+        if (Array.isArray(arr)) {
+            this._beforeEnter = this._beforeEnter.concat(arr);
+        }
+    }
+
+    get beforeEnter() {
+        return this._beforeEnter;
+    }
+
+    set onExit(arr) {
+        if (typeof arr === 'function' || typeof arr === 'string') {
+            arr = [arr];
+        }
+        if (Array.isArray(arr)) {
+            this._onExit = this._onExit.concat(arr);
+        }
+    }
+
+    get onExit() {
+        return this._onExit;
     }
 }
 

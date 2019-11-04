@@ -64,6 +64,7 @@ class LinkBase extends React.Component
             children,
             routerStore,
             activeClassName,
+            to,
             ...props
         } = this.props;
 
