@@ -114,11 +114,13 @@ export class RouterStore
      * History methods
      */
 
-    push(location) {
+    push(routeName) {
+        let location = this.routes.hasOwnProperty(routeName) ? this.createUrlFromState({ routeName }): routeName;
         this.history.push(location);
     }
 
-    replace(location) {
+    replace(routeName) {
+        let location = this.routes.hasOwnProperty(routeName) ? this.createUrlFromState({ routeName }): routeName;
         this.history.replace(location);
     }
 
@@ -167,6 +169,8 @@ export class Route
      */
     component = null;
 
+    name = null;
+
     /**
      * @var {string}
      */
@@ -186,8 +190,10 @@ export class Route
      */
     subroutes = {};
 
+    path = {};
+
     _context = false;
-    _defaultContext = {};
+    defaultContext = {};
 
     constructor(props = {}) {
         Object.keys(props).forEach((propKey) => {
@@ -199,17 +205,28 @@ export class Route
         if (this.pattern.substring(0, 1) !== '/') {
             this.pattern = '/' + this.pattern;
         }
+
+        this.beforeEnter = props.beforeEnter;
+        this.onExit = props.onExit;
+    }
+
+    get pathname() {
+        let route = this;
+        let path = [route.name];
+        while (route = route.parent) {
+            path.push(route.name);
+        }
+        return path.filter(i => i).reverse().join('.');
     }
 
     set context(state) {
-        if (!state) {
-            this._context = false;
-            return void 0;
-        }
         if (typeof state === 'string') {
             state = { routeName: state };
         }
-        this._context = { ...state };
+        if (state !== null) {
+            state = false;
+        }
+        this._context = state;
     }
 
     get context() {
@@ -217,7 +234,7 @@ export class Route
     }
 
     set beforeEnter(arr) {
-        if (typeof arr === 'function') {
+        if (typeof arr === 'function' || typeof arr === 'string') {
             arr = [arr];
         }
         if (Array.isArray(arr)) {
@@ -230,7 +247,7 @@ export class Route
     }
 
     set onExit(arr) {
-        if (typeof arr === 'function') {
+        if (typeof arr === 'function' || typeof arr === 'string') {
             arr = [arr];
         }
         if (Array.isArray(arr)) {
