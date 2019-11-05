@@ -223,7 +223,7 @@ export class Route
         if (typeof state === 'string') {
             state = { routeName: state };
         }
-        if (state !== null) {
+        if (state !== null && typeof state !== 'object') {
             state = false;
         }
         this._context = state;
