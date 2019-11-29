@@ -64,7 +64,7 @@ class LinkBase extends React.Component
             children,
             routerStore,
             activeClassName,
-            to,
+            to = '',
             ...props
         } = this.props;
 
@@ -72,7 +72,7 @@ class LinkBase extends React.Component
             return null;
         }
 
-        let href = routerStateToUrl(routerStore, this.toState);
+        let href = to.substring(0, 1) === '#' ? to : routerStateToUrl(routerStore, this.toState);
 
         if (activeClassName) {
             let index = href.indexOf('?');
