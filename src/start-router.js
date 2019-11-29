@@ -11,7 +11,7 @@ import {
     isPromise
 } from './utils';
 
-export const startRouter = (views, rootStore, { resources, ...config } = {}) => {
+export const startRouter = (views, rootStore, { resources, runAllEvents = false, ...config } = {}) => {
     const store = new RouterStore();
 
     typeof rootStore === 'function'
@@ -116,16 +116,16 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         }
 
         newPath = newPath.concat(buildLookupPath(match.route));
+        newPath = [...new Set(newPath)];// remove duplicates
 
         // add routes from previous path for onExit event trigger
         let oldPath = buildLookupPath(store.currentRoute)
             .reverse()
             .filter(route => route.isActive && !newPath.includes(route));
 
-        // filter all inactive routes from newPath except last one
-        // TODO there should be check if route params changed
-        newPath = [...new Set(newPath)];
-        newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
+        if (!runAllEvents) {
+            newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
+        }
 
         // build params
         const pathParams = newPath.reduce((obj, route) => {
@@ -145,9 +145,11 @@ export const startRouter = (views, rootStore, { resources, ...config } = {}) => 
         for (let i = 0; i < newPath.length; i++) {
             let route = newPath[i];
             fns = fns.concat(
-                buildFnsArray(route.beforeEnter, (params, rootStore) => {
-                    store.onMatch(params, rootStore, route);
-                })
+                buildFnsArray(
+                    route.beforeEnter,
+                    (runAllEvents && route.isActive && newPath.length - 1 !== i)
+                    || ((params, rootStore) => void store.onMatch(params, rootStore, route))
+                )
             );
         }
 
