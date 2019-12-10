@@ -20,13 +20,13 @@ class LinkBase extends React.Component
 
     setRouterState(props) {
         if (isObject(props.to)) {
-            this.toState = new RouterState({ ...props.to });
+            this.toState = new RouterState({ params: {}, queryParams: {}, ...props.to });
         }
         else {
             this.toState = new RouterState({
                 routeName: props.to,
-                params: props.params,
-                queryParams: props.queryParams,
+                params: props.params || {},
+                queryParams: props.queryParams || {},
             });
         }
     }
