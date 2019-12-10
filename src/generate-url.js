@@ -59,17 +59,25 @@ export const routerStateToUrl = (routerStore, toState) => {
 
     try {
         const defaultParams = route.defaultParams;
+        const pathParams = {};
+        const queryParams = {};
+
+        Object.keys(toState.params).forEach((key) => {
+            if (route.path.tokens.findIndex(token => token.name === key) > -1) {
+                pathParams[key] = toState.params[key];
+            }
+            else {
+                queryParams[key] = toState.params[key];
+            }
+        });
+
         const params = {
             ...defaultParams,
             ...toJS(routerStore.params),
-            ...toJS(toState.params),
+            ...pathParams,
         };
 
-        const queryParams = {
-            ...toState.queryParams
-        };
-
-        return generateUrl(route.path.pattern, params, queryParams);
+        return generateUrl(route.path.pattern, params, { ...queryParams, ...toState.queryParams });
     }
     catch (e) {
         console.error('Missing parameter for route ', '\'' + toState.routeName + '\'', "\n", 'Original Error: ', e.message);
