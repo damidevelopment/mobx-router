@@ -53,6 +53,9 @@ export const generateUrl = (pattern = '/', params = {}, queryParams = {}) => {
 export const routerStateToUrl = (routerStore, toState) => {
     const route = routerStore.getRoute(toState.routeName);
 
+    toState.params = toState.params || {};
+    toState.queryParams = toState.queryParams || {};
+
     if (!route) {
         return '/#(no route found for ' + toState.routeName + ')';
     }
@@ -63,6 +66,10 @@ export const routerStateToUrl = (routerStore, toState) => {
         const queryParams = {};
 
         Object.keys(toState.params).forEach((key) => {
+            if (!toState.params.hasOwnProperty(key)) {
+                return;
+            }
+
             if (route.path.tokens.findIndex(token => token.name === key) > -1) {
                 pathParams[key] = toState.params[key];
             }
