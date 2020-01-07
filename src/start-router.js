@@ -10,6 +10,7 @@ import {
     buildFnsArray,
     isPromise
 } from './utils';
+import { action as mobxAction } from 'mobx';
 
 export const startRouter = (views, rootStore, { resources, runAllEvents = false, ...config } = {}) => {
     const store = new RouterStore();
@@ -167,14 +168,14 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             );
         }, Promise.resolve(pathParams))
             .then(
-                () => {
+                mobxAction(() => {
                     // set current route and params
                     store.params = pathParams;
                     store.currentRoute = match.route;
 
                     // set previous location
                     store.previousLocation = location;
-                },
+                }),
                 // TODO: handle rejected promise
                 (...args) => console.error('Route error:', ...args)
             )

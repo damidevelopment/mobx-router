@@ -8,7 +8,7 @@ export class RouterStore
 {
     @observable location = null;
 
-    params = {};
+    @observable params = {};
 
     currentView = null;
 
