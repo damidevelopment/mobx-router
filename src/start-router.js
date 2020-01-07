@@ -123,8 +123,12 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             .reverse()
             .filter(route => route.isActive && !newPath.includes(route));
 
+        const curr = buildLookupPath(store.currentRoute);
+
         if (!runAllEvents) {
-            newPath = newPath.filter((route, i) => !route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
+            newPath = newPath.filter((route, i) => {
+                return (route.isActive && curr.includes(route)) || (!route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
+            });
         }
 
         // build params
