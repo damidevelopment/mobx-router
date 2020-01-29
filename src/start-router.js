@@ -128,7 +128,8 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
 
         if (!runAllEvents) {
             newPath = newPath.filter((route, i) => {
-                return (route.isActive && curr.includes(route)) || (!route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
+                return (route.isActive && curr.includes(route) && route.final && i === newPath.length - 1)
+                    || (!route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
             });
         }
 
