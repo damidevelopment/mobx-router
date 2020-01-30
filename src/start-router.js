@@ -97,18 +97,23 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             // route = store.routes.notFound;
         }
 
+        store.nextState = {
+            routeName: match.route.pathname,
+            params: match.params,
+        };
+
         // build new path for matched route
         let newPath = [];
 
-        if (match.route.context === null) {
-            match.route.context = store.currentRoute ? {
+        if (match.route.fallbackState === null) {
+            match.route.fallbackState = store.currentRoute ? {
                 routeName: store.currentRoute.pathname,
                 params: store.params,
-            } : match.route.defaultContext;
+            } : match.route.defaultState;
         }
 
-        if (match.route.context) {
-            let { routeName, params } = match.route.context;
+        if (match.route.fallbackState) {
+            let { routeName, params } = match.route.fallbackState;
             let route = store.routes[routeName];
             if (route) {
                 newPath = newPath.concat(buildLookupPath(route));
@@ -119,16 +124,14 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
         newPath = newPath.concat(buildLookupPath(match.route));
         newPath = [...new Set(newPath)];// remove duplicates
 
-        // add routes from previous path for onExit event trigger
-        let oldPath = buildLookupPath(store.currentRoute)
-            .reverse()
-            .filter(route => route.isActive && !newPath.includes(route));
+        const currentRoute = buildLookupPath(store.currentRoute);
 
-        const curr = buildLookupPath(store.currentRoute);
+        // add routes from previous path for onExit event to be triggered
+        let oldPath = currentRoute.reverse().filter(route => route.isActive && !newPath.includes(route));
 
         if (!runAllEvents) {
             newPath = newPath.filter((route, i) => {
-                return (route.isActive && curr.includes(route) && route.final && i === newPath.length - 1)
+                return (route.isActive && currentRoute.includes(route) && route.final && i === newPath.length - 1)
                     || (!route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
             });
         }
@@ -138,8 +141,8 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             return { ...route.defaultParams, ...obj };
         }, match.params);
 
-        if (newPath.length > 0 && oldPath.length > 0 && newPath[newPath.length - 1].slot !== oldPath[0].slot && oldPath[0].context !== false) {
-            let { routeName } = oldPath[0].context;
+        if (newPath.length > 0 && oldPath.length > 0 && newPath[newPath.length - 1].slot !== oldPath[0].slot && oldPath[0].fallbackState !== false) {
+            let { routeName } = oldPath[0].fallbackState;
             let route = store.routes[routeName];
             let contextOldPath = buildLookupPath(route).reverse().filter(route => route.isActive);
             oldPath = oldPath.concat(contextOldPath);
@@ -171,8 +174,8 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             .then(
                 mobxAction(() => {
                     // set current route and params
-                    store.params = pathParams;
                     store.currentRoute = match.route;
+                    store.params = pathParams;
 
                     // set previous location
                     store.previousLocation = location;
@@ -183,8 +186,8 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             // finally
             .then(() => {
                 for (let i in oldPath) {
-                    if (oldPath[i].context !== false) {
-                        oldPath[i].context = null;
+                    if (oldPath[i].fallbackState !== false) {
+                        oldPath[i].fallbackState = null;
                     }
                     oldPath[i].isActive = false;
                 }

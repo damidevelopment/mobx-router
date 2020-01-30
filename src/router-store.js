@@ -1,4 +1,4 @@
-import { observable, action } from 'mobx';
+import { observable, action, toJS } from 'mobx';
 import { routerStateToUrl } from './generate-url';
 
 /**
@@ -15,10 +15,12 @@ export class RouterStore
     history = null;
     routes = null;
 
+    _nextState = null;
+    _previousState = null;
+
     _previousLocation = null;
 
     _currentRoute = null;
-    _previousRoute = null;
 
     slot = null;
 
@@ -75,25 +77,50 @@ export class RouterStore
 
     // routes history
 
-    set currentRoute(newRoute) {
-        if (this._currentRoute && this._currentRoute.final) {
-            this._previousRoute = this._currentRoute;
+    get nextState() {
+        return this._nextState;
+    }
+
+    set nextState(toState) {
+        this._nextState = { ...toState };
+    }
+
+    get currentState() {
+        if (!this._currentRoute) {
+            return null;
         }
-        this._currentRoute = newRoute;
+
+        return {
+            routeName: this._currentRoute.pathname,
+            params: toJS(this.params),
+        };
+    }
+
+    get previousState() {
+        return this._previousState;
     }
 
     get currentRoute() {
         return this._currentRoute;
     }
 
-    get previousRoute() {
-        return this._previousRoute;
+    set currentRoute(newRoute) {
+        if (this._currentRoute && this._currentRoute.final) {
+            this._previousState = {
+                routeName: this._currentRoute.pathname,
+                params: toJS(this.params),
+            };
+            this._nextState = null;
+        }
+        this._currentRoute = newRoute;
     }
 
+    // obsolete?
     set previousLocation(location) {
         this._previousLocation = location;
     }
 
+    // obsolete?
     get previousLocation() {
         return this._previousLocation;
     }
@@ -192,8 +219,8 @@ export class Route
 
     path = {};
 
-    _context = false;
-    defaultContext = {};
+    _fallbackState = false;
+    defaultState = {};
 
     constructor(props = {}) {
         Object.keys(props).forEach((propKey) => {
@@ -219,18 +246,18 @@ export class Route
         return path.filter(i => i).reverse().join('.');
     }
 
-    set context(state) {
+    set fallbackState(state) {
         if (typeof state === 'string') {
             state = { routeName: state };
         }
         if (state !== null && typeof state !== 'object') {
             state = false;
         }
-        this._context = state;
+        this._fallbackState = state;
     }
 
-    get context() {
-        return this._context;
+    get fallbackState() {
+        return this._fallbackState;
     }
 
     set beforeEnter(arr) {
