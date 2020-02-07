@@ -189,12 +189,12 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             )
             // finally
             .then(() => {
-                for (let i in oldPath) {
-                    if (oldPath[i].fallbackState !== false) {
-                        oldPath[i].fallbackState = null;
+                oldPath.forEach(route => {
+                    if (route.fallbackState !== false && route.fallbackState.routeName === store.currentRoute.pathname) {
+                        route.fallbackState = null;
                     }
-                    oldPath[i].isActive = false;
-                }
+                    route.isActive = false;
+                });
             });
     }); // history.subscribe end
 }
