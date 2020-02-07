@@ -10,7 +10,7 @@ import {
     buildFnsArray,
     isPromise
 } from './utils';
-import { action as mobxAction } from 'mobx';
+import { action as mobxAction, toJS } from 'mobx';
 
 export const startRouter = (views, rootStore, { resources, runAllEvents = false, ...config } = {}) => {
     const store = new RouterStore();
@@ -99,7 +99,7 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
 
         store.nextState = {
             routeName: match.route.pathname,
-            params: match.params,
+            params: toJS(match.params),
         };
 
         // build new path for matched route
@@ -108,7 +108,7 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
         if (match.route.fallbackState === null) {
             match.route.fallbackState = store.currentRoute ? {
                 routeName: store.currentRoute.pathname,
-                params: store.params,
+                params: toJS(store.params),
             } : match.route.defaultState;
         }
 
@@ -132,7 +132,8 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
         if (!runAllEvents) {
             newPath = newPath.filter((route, i) => {
                 return (route.isActive && currentRoute.includes(route) && route.final && i === newPath.length - 1)
-                    || (!route.isActive || (i === newPath.length - 1 && route === store.currentRoute));
+                    || !route.isActive
+                    || (i === newPath.length - 1 && route === store.currentRoute);
             });
         }
 
