@@ -1,7 +1,7 @@
 {
   "name": "damidev-mobx-router",
   "description": "MobX powered router for React apps",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "author": "Jakub Hrášek <hrasek@damidev.com>",
   "license": "MIT",
   "bugs": {
