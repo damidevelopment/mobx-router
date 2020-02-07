@@ -182,7 +182,10 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
                     store.previousLocation = location;
                 }),
                 // TODO: handle rejected promise
-                (...args) => console.error('Route error:', ...args)
+                (...args) => {
+                    newPath.forEach(route => route.isActive = false);
+                    return Promise.resolve();
+                }
             )
             // finally
             .then(() => {
