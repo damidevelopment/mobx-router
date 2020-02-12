@@ -65,7 +65,7 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
         return (isPromise(result) ? result : Promise.resolve(result))
     };
 
-    history.subscribe((location, action) => {
+    function processHistoryCallback(location, action) {
         const matchedRoutes = getObjectKeys(store.routes).reduce((arr, routeName) => {
             const route = store.routes[routeName];
             const keys = route.path.match(location.pathname);
@@ -165,7 +165,7 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
 
         // invoke fns
         // @see https://decembersoft.com/posts/promises-in-serial-with-array-reduce/
-        fns.reduce((promiseChain, currentTask) => {
+        return fns.reduce((promiseChain, currentTask) => {
             return promiseChain.then(
                 chainResults =>
                     apply(currentTask, chainResults)
@@ -196,5 +196,16 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
                     route.isActive = false;
                 });
             });
+    }
+
+    let historyStack;
+
+    history.subscribe((location, action) => {
+        if (!historyStack) {
+            historyStack = Promise.resolve();
+        }
+
+        historyStack.then(() =>
+            new Promise(resolve => processHistoryCallback(location, action).then(resolve, resolve)))
     }); // history.subscribe end
 }
