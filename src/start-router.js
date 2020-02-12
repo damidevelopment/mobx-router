@@ -12,6 +12,33 @@ import {
 } from './utils';
 import { action as mobxAction, toJS } from 'mobx';
 
+// @see https://stackoverflow.com/questions/21485545/is-there-a-way-to-tell-if-an-es6-promise-is-fulfilled-rejected-resolved#21489870
+function makeQuerablePromise(promise) {
+    // Don't create a wrapper for promises that can already be queried.
+    if (promise.isResolved) return promise;
+
+    var isResolved = false;
+    var isRejected = false;
+
+    // Observe the promise, saving the fulfillment in a closure scope.
+    var result = promise.then(
+        function(v) {
+            isResolved = true;
+            return v;
+        },
+        function(e) {
+            isRejected = true;
+            throw e;
+        }
+    );
+
+    result.isFulfilled = () => isResolved || isRejected;
+    result.isResolved = () => isResolved;
+    result.isRejected = () => isRejected;
+
+    return result;
+}
+
 export const startRouter = (views, rootStore, { resources, runAllEvents = false, ...config } = {}) => {
     const store = new RouterStore();
 
@@ -199,13 +226,26 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
     }
 
     let historyStack;
+    let historyTimeout;
 
     history.subscribe((location, action) => {
         if (!historyStack) {
             historyStack = Promise.resolve();
         }
 
-        historyStack.then(() =>
-            new Promise(resolve => processHistoryCallback(location, action).then(resolve, resolve)))
+        if (!historyTimeout) {
+            historyTimeout = setInterval(() => {
+                if (!historyStack || historyStack.isFulfilled) {
+                    historyStack = null;
+                    clearInterval(historyTimeout);
+                    historyTimeout = null;
+                }
+            }, 3000);
+        }
+
+        historyStack = makeQuerablePromise(
+            historyStack.then(() =>
+                new Promise(resolve => processHistoryCallback(location, action).then(resolve, resolve)))
+        );
     }); // history.subscribe end
 }
