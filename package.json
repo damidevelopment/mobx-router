@@ -1,7 +1,7 @@
 {
   "name": "damidev-mobx-router",
   "description": "MobX powered router for React apps",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "author": "Jakub Hrášek <hrasek@damidev.com>",
   "license": "MIT",
   "bugs": {
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "path-to-regexp": "^3.2.0",
-    "query-string": "^6.9.0"
+    "query-string": "^6.11.1"
   },
   "peerDependencies": {
     "history": "^4.0.0",
@@ -39,17 +39,17 @@
     "react-dom": "^16.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.7.7",
-    "@babel/core": "^7.7.7",
-    "@babel/plugin-proposal-class-properties": "^7.7.4",
-    "@babel/plugin-proposal-decorators": "^7.7.4",
-    "@babel/preset-env": "^7.7.7",
-    "@babel/preset-react": "^7.7.4",
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.7",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-proposal-decorators": "^7.8.3",
+    "@babel/preset-env": "^7.8.7",
+    "@babel/preset-react": "^7.8.3",
     "history": "^4.10.1",
-    "mobx": "^5.15.1",
+    "mobx": "^5.15.4",
     "mobx-react": "^5.4.4",
-    "react": "^16.12.0",
-    "react-dom": "^16.12.0",
+    "react": "^16.13.0",
+    "react-dom": "^16.13.0",
     "watch": "^1.0.2"
   }
 }
