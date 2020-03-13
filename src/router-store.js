@@ -1,4 +1,4 @@
-import { observable, action, toJS } from 'mobx';
+import { observable, action, computed, toJS } from 'mobx';
 import { routerStateToUrl } from './generate-url';
 
 /**
@@ -15,12 +15,13 @@ export class RouterStore
     history = null;
     routes = null;
 
-    _nextState = null;
-    _previousState = null;
+    @observable _nextState = null;
 
-    _previousLocation = null;
+    @observable _previousState = null;
 
-    _currentRoute = null;
+    @observable _previousLocation = null;
+
+    @observable _currentRoute = null;
 
     slot = null;
 
@@ -77,6 +78,7 @@ export class RouterStore
 
     // routes history
 
+    @computed
     get nextState() {
         return this._nextState;
     }
@@ -85,6 +87,7 @@ export class RouterStore
         this._nextState = { ...toState };
     }
 
+    @computed
     get currentState() {
         if (!this._currentRoute) {
             return null;
@@ -96,10 +99,12 @@ export class RouterStore
         };
     }
 
+    @computed
     get previousState() {
         return this._previousState;
     }
 
+    @computed
     get currentRoute() {
         return this._currentRoute;
     }
@@ -121,6 +126,7 @@ export class RouterStore
     }
 
     // obsolete?
+    @computed
     get previousLocation() {
         return this._previousLocation;
     }
