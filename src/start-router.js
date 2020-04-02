@@ -183,6 +183,7 @@ export const startRouter = (views, rootStore, { resources, runAllEvents = false,
             let route = newPath[i];
             fns = fns.concat(
                 buildFnsArray(
+                    route.authCallback,
                     route.beforeEnter,
                     (runAllEvents && route.isActive && newPath.length - 1 !== i)
                     || ((params, rootStore) => void store.onMatch(params, rootStore, route))

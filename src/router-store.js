@@ -183,6 +183,9 @@ export class Route
     final = true;
     isActive = false;
 
+    /* (params, rootStore) => Promise<boolean> */
+    authCallback = null;
+
     /**
      * Component can be React.Component or function that returns renderable object.
      *
@@ -241,6 +244,10 @@ export class Route
 
         this.beforeEnter = props.beforeEnter;
         this.onExit = props.onExit;
+    }
+
+    get isRestricted() {
+        return this.authCallback !== null;
     }
 
     get pathname() {
